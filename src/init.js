@@ -126,7 +126,7 @@ require.config({
             deps: ['lib/pixastic/pixastic/pixastic.core'],
             exports: 'Pixastic'
         },
-        fancytree: ['jquery-ui/droppable'],
+        fancytree: ['jquery-ui/core', 'jquery-ui/effect-blind', 'jquery-ui/droppable', 'jquery-ui/draggable'],
         'moment-duration-format': ['moment'],
         BiojsCore: {
             exports: 'Biojs'

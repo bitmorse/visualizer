@@ -41,7 +41,7 @@ define(['src/util/versionhandler', 'src/util/debug', 'src/main/variables', 'vers
             def = setData(value.data.urls, value.data.branch, value.data.url, options);
             lastLoaded.data = value.data;
         } else {
-            def = $.Deferred().resolve();
+            def = Promise.resolve();
         }
         if (value.view && (lastLoaded.view.url !== value.view.url || (lastLoaded.view.urls !== value.view.urls && lastLoaded.view.branch !== value.view.branch))) {
             def = def.then(function () {
