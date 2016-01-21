@@ -152,7 +152,8 @@ module.exports = function (grunt) {
                             './moment/min/moment.min.js',
                             './moment-duration-format/lib/moment-duration-format.js',
                             './smart-array-filter/dist/*',
-                            './numeral/min/numeral.min.js'
+                            './numeral/min/numeral.min.js',
+                            './jQuery-contextMenu/dist/**'
                         ],
 
                         dest: './build/components/'

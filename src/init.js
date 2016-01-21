@@ -30,6 +30,7 @@ require.config({
         'highlightjs': 'lib/highlight.js/highlight.pack',
         jcampconverter: 'components/jcampconverter/dist/jcampconverter.min',
         jqgrid: 'components/jqgrid_edit/js/jquery.jqGrid',
+        'jQuery-contextMenu': 'components/jQuery-contextMenu/dist/jquery.contextMenu.min',
         slickgrid_core: 'components/slickgrid/slick.core',
         slickgrid: 'components/slickgrid/slick.grid',
         jquery: 'components/jquery/dist/jquery.min',
@@ -96,6 +97,7 @@ require.config({
         'lib/parser/Parser': {
             exports: 'Parser'
         },
+        'jQuery-contextMenu': 'jquery',
         'jquery-cookie': 'jquery',
         'select2': ['jquery'],
         'lib/threejs/TrackballControls': ['threejs'],
