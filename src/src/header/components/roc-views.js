@@ -234,7 +234,7 @@ define([
                 var tree = that.getTree(views);
                 that.$tree.fancytree({
                     source: tree,
-                    extensions: ['dnd'],
+                    extensions: ['dnd', 'filter'],
                     dnd: {
                         autoExpandMS: 300,
                         preventVoidMoves: true,
@@ -254,10 +254,17 @@ define([
                             console.log('TODO: handle drag and drop');
                         }
                     },
+                    filter: {
+                        mode: 'hide'
+                    },
                     // events
                     activate: that.onActivate.bind(that),
                     dblclick: that.onDblclick.bind(that)
                 });
+                that.tree = that.$tree.fancytree('getTree');
+
+                that.switchToFlavor(that.flavor);
+
                 that.$tree.contextmenu({
                     delegate: 'span.fancytree-title',
                     preventContextMenuForPopup: true,
@@ -290,10 +297,15 @@ define([
                 });
             });
         },
-        onActivate: function (event, data) {
+        switchToFlavor(flavorName) {
+            this.tree.filterBranches(function (node) {
+                return node.title === flavorName;
+            });
+        },
+        onActivate(event, data) {
             // todo
         },
-        onDblclick: function (event, data) {
+        onDblclick(event, data) {
             var node = data.node;
             if (node.folder) {
                 return;
@@ -314,14 +326,8 @@ define([
                 }
             }
 
-            var fancytree = [{
-                key: '/',
-                title: 'flavors',
-                folder: true,
-                expanded: true,
-                children: []
-            }];
-            this.buildFancytree(fancytree[0].children, tree);
+            var fancytree = [];
+            this.buildFancytree(fancytree, tree, true);
 
             return fancytree;
         },
@@ -339,19 +345,22 @@ define([
             }
             map.set(flavor[i], view);
         },
-        buildFancytree(fancytree, tree) {
+        buildFancytree(fancytree, tree, firstLevel) {
             for (var element of tree) {
-                this.buildElement(fancytree, element[0], element[1]);
+                this.buildElement(fancytree, element[0], element[1], firstLevel);
             }
             fancytree.sort(sortFancytree);
         },
-        buildElement(fancytree, name, value) {
+        buildElement(fancytree, name, value, firstLevel) {
             if (value instanceof Map) {
                 var element = {
                     title: name,
                     folder: true,
                     children: []
                 };
+                if (firstLevel && name === this.flavor) {
+                    element.expanded = true;
+                }
                 this.buildFancytree(element.children, value);
                 fancytree.push(element);
             } else {
