@@ -7,6 +7,9 @@ define(function () {
         this.id = view._id;
         this.revid = view._rev;
         this.content = view.$content;
+        this.flavors = this.content.flavors;
+        this.creationDate = new Date(view.$creationDate);
+        this.modificationDate = new Date(view.$modificationDate);
         this.owner = view.$owners[0];
         this.manager = manager;
 
@@ -31,6 +34,23 @@ define(function () {
                 view: {url: this.getViewUrl()},
                 data: {url: this.getDataUrl()}
             };
+        },
+        moveTo(folder) {
+            var newPath = folder.data.path;
+            var flavor = newPath[0];
+
+            var currentPath = this.flavors[flavor];
+            var name = currentPath[currentPath.length - 1];
+            var that = this;
+            console.log('TODO: change flavor on server');
+            return Promise.resolve()
+                .then(function () {
+                    console.log('TODO update modification date. Maybe in a global update handler ?');
+                    that.flavors[flavor] = newPath.slice(1).concat(name);
+                    return true;
+                }).catch(function () {
+                    return false;
+                });
         }
     });
 

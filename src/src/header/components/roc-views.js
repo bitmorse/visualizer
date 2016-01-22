@@ -87,7 +87,7 @@ define([
         },
         createDom() {
             if (!this.$_elToOpen) {
-                this.$_elToOpen = $('<div>').css('width', 600);
+                this.$_elToOpen = $('<div>');
             }
             if (this.rocAuthenticated) {
                 this.openMenu('tree');
@@ -138,11 +138,9 @@ define([
                 });
         },
         getMenuContent() {
-            var dom = $('<div>', {
-                css: {
-                    width: '600px'
-                }
-            });
+            var that = this;
+
+            var dom = $('<div>');
 
             var header = $('<div>');
 
@@ -181,37 +179,61 @@ define([
 
             var main = $('<div>', {
                 css: {
-                    marginTop: '20px',
-                    height: '600px'
+                    marginTop: '20px'
                 }
             });
 
             var leftMain = $('<div>', {
-                text: 'aaa',
                 css: {
                     verticalAlign: 'top',
                     display: 'inline-block',
-                    width: '40%'
+                    width: '360px'
                 }
             });
 
-            var rightMain = $('<div>', {
-                css: {
-                    display: 'inline-block',
-                    width: '60%',
-                    height: '100%'
-                }
+            var searchBox = $('<div></div>', {
+                text: 'Search: '
             });
+
+            var lastSearchValue = '';
+            var searchField = $('<input type="text" size="20">')
+                .keyup(function () {
+                    var value = searchField.val();
+                    if (value !== lastSearchValue) {
+                        that.doSearch(value);
+                        lastSearchValue = value;
+                    }
+                });
+
+            searchBox.append(searchField);
+
+            var flavorSelect = $('<div>');
 
             var tree = $('<div>', {
                 css: {
                     overflowY: 'auto',
-                    height: '100%'
+                    maxHeight: '500px'
                 }
             });
             this.$tree = tree;
 
-            rightMain.append(tree);
+            leftMain
+                .append(searchBox)
+                .append(flavorSelect)
+                .append(tree);
+
+            var rightMain = $('<div>', {
+                css: {
+                    display: 'inline-block',
+                    height: '100%',
+                    marginLeft: '10px',
+                    width: '300px'
+                }
+            });
+
+            var infoBox = this.$infoBox = $('<div>');
+
+            rightMain.append(infoBox);
 
             main
                 .append(leftMain)
@@ -234,23 +256,29 @@ define([
                 var tree = that.getTree(views);
                 that.$tree.fancytree({
                     source: tree,
+                    toggleEffect: false,
                     extensions: ['dnd', 'filter'],
                     dnd: {
                         autoExpandMS: 300,
                         preventVoidMoves: true,
                         preventRecursiveMoves: true,
                         dragStart(node) {
+                            if (that.inSearch) return false; // Cannot move while search is active
                             return !node.folder; // Can only move documents
                         },
-                        dragEnter(target) {
+                        dragEnter(target, info) {
+                            var theNode = info.otherNode;
+                            if (target.folder && target === theNode.parent) {
+                                return false; // Already in current folder
+                            }
                             return !!target.folder; // Can only drop in a folder
                         },
                         dragDrop(target, info) {
                             var theNode = info.otherNode;
-                            if (target === theNode.parent) {
-                                return false; // Same folder, nothing to do
-                            }
-                            // todo handle drop
+                            theNode.data.view.moveTo(target)
+                                .then(function (result) {
+                                    if (result) theNode.moveTo(target);
+                                });
                             console.log('TODO: handle drag and drop');
                         }
                     },
@@ -297,13 +325,56 @@ define([
                 });
             });
         },
+        doSearch(value) {
+            if (value === '') {
+                this.inSearch = false;
+                this.switchToFlavor(this.flavor);
+                for (var child of this.tree.rootNode.getChildren()) {
+                    child.visit(function (node) {
+                        node.setExpanded(false);
+                    });
+                }
+            } else {
+                this.inSearch = true;
+                // copied from https://github.com/mar10/fancytree/blob/a34f9edafe2c90774adc0b088145cdbc25eba71f/src/jquery.fancytree.filter.js#L30
+                // to enable filtering directories
+                var match = value.split('').reduce(function (a, b) {
+                    return a + '[^' + b + ']*' + b;
+                });
+                var re = new RegExp('.*' + match + '.*', 'i');
+                var re2 = new RegExp(value, 'gi');
+                var filter = function (node) {
+                    if (node.folder) {
+                        return false;
+                    }
+                    var res = re.test(node.title);
+                    if (res) {
+                        node.titleWithHighlight = node.title.replace(re2, function (s) {
+                            return '<mark>' + s + '</mark>';
+                        });
+                    }
+                    return res;
+                };
+                this.tree.filterNodes(filter, {autoExpand: true});
+            }
+        },
         switchToFlavor(flavorName) {
             this.tree.filterBranches(function (node) {
                 return node.title === flavorName;
             });
         },
         onActivate(event, data) {
-            // todo
+            var node = data.node;
+            this.$infoBox.empty();
+            if (!node.folder) {
+                var view = node.data.view;
+                console.log(view);
+                this.$infoBox.append(
+                    `View: ${node.title}<br><br>
+                    Created on: ${view.modificationDate.toLocaleString()}<br>
+                    Last modified: ${view.modificationDate.toLocaleString()}`
+                );
+            }
         },
         onDblclick(event, data) {
             var node = data.node;
@@ -327,7 +398,7 @@ define([
             }
 
             var fancytree = [];
-            this.buildFancytree(fancytree, tree, true);
+            this.buildFancytree(fancytree, tree, [], true);
 
             return fancytree;
         },
@@ -345,23 +416,24 @@ define([
             }
             map.set(flavor[i], view);
         },
-        buildFancytree(fancytree, tree, firstLevel) {
+        buildFancytree(fancytree, tree, path, firstLevel) {
             for (var element of tree) {
-                this.buildElement(fancytree, element[0], element[1], firstLevel);
+                this.buildElement(fancytree, element[0], element[1], path.concat(element[0]), firstLevel);
             }
             fancytree.sort(sortFancytree);
         },
-        buildElement(fancytree, name, value, firstLevel) {
+        buildElement(fancytree, name, value, path, firstLevel) {
             if (value instanceof Map) {
                 var element = {
                     title: name,
                     folder: true,
-                    children: []
+                    children: [],
+                    path: path
                 };
                 if (firstLevel && name === this.flavor) {
                     element.expanded = true;
                 }
-                this.buildFancytree(element.children, value);
+                this.buildFancytree(element.children, value, path);
                 fancytree.push(element);
             } else {
                 fancytree.push({
