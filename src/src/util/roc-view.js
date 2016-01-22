@@ -41,15 +41,21 @@ define(function () {
 
             var currentPath = this.flavors[flavor];
             var name = currentPath[currentPath.length - 1];
-            var that = this;
-            console.log('TODO: change flavor on server');
-            return Promise.resolve()
+            this.flavors[flavor] = newPath.slice(1).concat(name);
+            return this.save()
                 .then(function () {
-                    console.log('TODO update modification date. Maybe in a global update handler ?');
-                    that.flavors[flavor] = newPath.slice(1).concat(name);
+                    console.warn('TODO update modification date. Maybe in a global update handler after save ?');
                     return true;
                 }).catch(function () {
                     return false;
+                });
+        },
+        save() {
+            return this.manager.putRequestDB('/' + this.id, this.view)
+                .then(function (resp) {
+                    console.log(resp);
+                }, function (err) {
+                    console.error(err);
                 });
         }
     });

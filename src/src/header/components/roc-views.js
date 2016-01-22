@@ -68,6 +68,11 @@ define([
         getRequestDB(url, query) {
             return this.getRequest('/db/' + this.rocDatabase + url, query);
         },
+        putRequestDB(url, data) {
+            var request = superagent.put(this.rocDbUrl + url).withCredentials();
+            request.send(data);
+            return request;
+        },
         verifyRoc() {
             var that = this;
             return this.getRequest('/auth/session')
