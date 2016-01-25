@@ -2,39 +2,63 @@
 
 define(function () {
 
-    function RocView(view, manager) {
-        this.view = view;
-        this.id = view._id;
-        this.revid = view._rev;
-        this.content = view.$content;
-        this.flavors = this.content.flavors;
-        this.creationDate = new Date(view.$creationDate);
-        this.modificationDate = new Date(view.$modificationDate);
-        this.owner = view.$owners[0];
-        this.manager = manager;
-
-        if (view._attachments) {
-            this.hasData = !!view._attachments['data.json'];
-            this.hasView = !!view._attachments['view.json'];
-        } else {
-            this.hasData = false;
-            this.hasView = false;
+    class RocView {
+        constructor(view, manager) {
+            this.view = view;
+            this.manager = manager;
         }
-    }
 
-    Object.assign(RocView.prototype, {
+        get content() {
+            return this.view.$content;
+        }
+
+        get creationDate() {
+            return new Date(this.view.$creationDate);
+        }
+
+        get flavors() {
+            return this.content.flavors;
+        }
+
+        get id() {
+            return this.view._id;
+        }
+
+        get modificationDate() {
+            return new Date(this.view.$modificationDate);
+        }
+
+        get owner() {
+            return this.view.$owners[0];
+        }
+
+        get revid() {
+            return this.view._rev;
+        }
+
+        hasView() {
+            return this.view._attachments && this.view._attachments['view.json'];
+        }
+
+        hasData() {
+            return this.view._attachments && this.view._attachments['data.json'];
+        }
+
         getViewUrl() {
-            return this.hasView ? `${this.manager.rocDbUrl}/${this.id}/view.json` : null;
-        },
+            return this.hasView() ? `${this.manager.rocDbUrl}/${this.id}/view.json` : null;
+        }
+
         getDataUrl() {
-            return this.hasData ? `${this.manager.rocDbUrl}/${this.id}/data.json` : null;
-        },
+            return this.hasData() ? `${this.manager.rocDbUrl}/${this.id}/data.json` : null;
+        }
+
         getViewSwitcher() {
             return {
                 view: {url: this.getViewUrl()},
                 data: {url: this.getDataUrl()}
             };
-        },
+        }
+
         moveTo(folder) {
             var newPath = folder.data.path;
             var flavor = newPath[0];
@@ -42,24 +66,28 @@ define(function () {
             var currentPath = this.flavors[flavor];
             var name = currentPath[currentPath.length - 1];
             this.flavors[flavor] = newPath.slice(1).concat(name);
-            return this.save()
-                .then(function () {
-                    console.warn('TODO update modification date. Maybe in a global update handler after save ?');
-                    return true;
-                }).catch(function () {
-                    return false;
-                });
-        },
+            return this.save().then(retTrue, retFalse);
+        }
+
         save() {
             return this.manager.putRequestDB('/' + this.id, this.view)
-                .then(function (resp) {
-                    console.log(resp);
-                }, function (err) {
-                    console.error(err);
+                .then(res => {
+                    this.view._id = res.body.id;
+                    this.view._rev = res.body.rev;
+                    this.view.$modificationDate = res.body.$modificationDate;
+                    this.view.$creationDate = res.body.$creationDate;
                 });
         }
-    });
+    }
 
     return RocView;
+
+    function retTrue() {
+        return true;
+    }
+
+    function retFalse() {
+        return false;
+    }
 
 });

@@ -5,6 +5,7 @@ define([
     'superagent',
     'src/header/components/default',
     'src/util/util',
+    'src/util/ui',
     'src/util/debug',
     'src/util/roc-view',
     'src/util/versioning',
@@ -14,20 +15,31 @@ define([
              superagent,
              Default,
              Util,
+             UI,
              Debug,
              RocView,
              Versioning) {
 
-    function RocViewManager() {
-    }
-
     var fakeLink = {
         color: 'blue',
         cursor: 'pointer',
-        'text-decoration': 'underline'
+        textDecoration: 'underline'
     };
 
-    Util.inherits(RocViewManager, Default, {
+    class RocViewManager extends Default {
+        get flavor() {
+            if (this._flavor) {
+                return this._flavor;
+            } else {
+                return this._flavor = window.sessionStorage.getItem('ci-visualizer-roc-views-flavor') || 'default';
+            }
+        }
+
+        set flavor(value) {
+            this._flavor = value;
+            window.sessionStorage.setItem('ci-visualizer-roc-views-flavor', value);
+        }
+
         initImpl() {
             var options = this.options || {};
             if (!options.url || !options.database) {
@@ -42,8 +54,11 @@ define([
             this.rocAuthenticated = false;
             this.rocUsername = null;
 
+            this._flavor = null;
+
             this.verifyRoc();
-        },
+        }
+
         _onClick() {
             if (this.rocReady) {
                 this.setStyleOpen(this._open);
@@ -54,42 +69,47 @@ define([
                     this.close();
                 }
             } else {
+                UI.showNotification('View database does not respond', 'error');
                 Debug.error('roc-views: unreachable database. Retrying now');
                 this.verifyRoc();
             }
-        },
+        }
+
         getRequest(url, query) {
             var request = superagent.get(this.rocUrl + url).withCredentials();
             if (query) {
                 request.query(query);
             }
             return request;
-        },
+        }
+
         getRequestDB(url, query) {
             return this.getRequest('/db/' + this.rocDatabase + url, query);
-        },
+        }
+
         putRequestDB(url, data) {
             var request = superagent.put(this.rocDbUrl + url).withCredentials();
             request.send(data);
             return request;
-        },
+        }
+
         verifyRoc() {
-            var that = this;
             return this.getRequest('/auth/session')
-                .then(function (res) {
+                .then(res => {
                     if (res.statusCode !== 200) {
-                        return Debug.error('roc-views: unable to contact ' + that.rocUrl);
+                        return Debug.error('roc-views: unable to contact ' + this.rocUrl);
                     }
                     if (!res.body.ok) {
                         return Debug.error('roc-views: unexpected response', res.body);
                     }
-                    that.rocReady = true;
+                    this.rocReady = true;
                     if (res.body.authenticated) {
-                        that.rocAuthenticated = true;
-                        that.rocUsername = res.body.username;
+                        this.rocAuthenticated = true;
+                        this.rocUsername = res.body.username;
                     }
                 });
-        },
+        }
+
         createDom() {
             if (!this.$_elToOpen) {
                 this.$_elToOpen = $('<div>');
@@ -99,7 +119,8 @@ define([
             } else {
                 this.openMenu('login');
             }
-        },
+        }
+
         openMenu(which) {
             if (which === this.currentMenu) {
                 return;
@@ -112,39 +133,37 @@ define([
             } else {
                 Debug.error('roc-views: unexpected value for which: ' + which);
             }
-        },
+        }
+
         getLoginContent() {
-            var that = this;
             var login = $('<div>');
             var link = $('<a>', {
                 text: 'here',
                 href: '#',
-                click() {
-                    that.login();
-                }
+                click: () => this.login()
             });
             login
                 .append('Click ')
                 .append(link)
                 .append(' to login');
             return login;
-        },
+        }
+
         login() {
             var url = encodeURIComponent(document.location.href);
             document.location.href = this.rocUrl + '/auth/login?continue=' + url;
-        },
-        logout() {
-            var that = this;
-            this.getRequest('/auth/logout')
-                .then(function () {
-                    that.rocAuthenticated = false;
-                    that.rocUsername = null;
-                    that.openMenu('login');
-                });
-        },
-        getMenuContent() {
-            var that = this;
+        }
 
+        logout() {
+            this.getRequest('/auth/logout')
+                .then(() => {
+                    this.rocAuthenticated = false;
+                    this.rocUsername = null;
+                    this.openMenu('login');
+                });
+        }
+
+        getMenuContent() {
             var dom = $('<div>');
 
             var header = $('<div>');
@@ -202,10 +221,10 @@ define([
 
             var lastSearchValue = '';
             var searchField = $('<input type="text" size="20">')
-                .keyup(function () {
+                .keyup(() => {
                     var value = searchField.val();
                     if (value !== lastSearchValue) {
-                        that.doSearch(value);
+                        this.doSearch(value);
                         lastSearchValue = value;
                     }
                 });
@@ -251,15 +270,16 @@ define([
             this.refresh();
 
             return dom;
-        },
+        }
+
         getViews() {
             return this.getRequestDB('/_all/entries', {right: 'write'}).then(returnBody);
-        },
+        }
+
         refresh() {
-            var that = this;
-            return this.getViews().then(function (views) {
-                var tree = that.getTree(views);
-                that.$tree.fancytree({
+            return this.getViews().then(views => {
+                var tree = this.getTree(views);
+                this.$tree.fancytree({
                     source: tree,
                     toggleEffect: false,
                     extensions: ['dnd', 'filter'],
@@ -267,8 +287,8 @@ define([
                         autoExpandMS: 300,
                         preventVoidMoves: true,
                         preventRecursiveMoves: true,
-                        dragStart(node) {
-                            if (that.inSearch) return false; // Cannot move while search is active
+                        dragStart: node => {
+                            if (this.inSearch) return false; // Cannot move while search is active
                             return !node.folder; // Can only move documents
                         },
                         dragEnter(target, info) {
@@ -283,35 +303,35 @@ define([
                             theNode.data.view.moveTo(target)
                                 .then(function (result) {
                                     if (result) theNode.moveTo(target);
+                                    else UI.showNotification('View could not be moved', 'error');
                                 });
-                            console.log('TODO: handle drag and drop');
                         }
                     },
                     filter: {
                         mode: 'hide'
                     },
                     // events
-                    activate: that.onActivate.bind(that),
-                    dblclick: that.onDblclick.bind(that)
+                    activate: (event, data) => this.onActivate(event, data),
+                    dblclick: (event, data) => this.onDblclick(event, data)
                 });
-                that.tree = that.$tree.fancytree('getTree');
+                this.tree = this.$tree.fancytree('getTree');
 
-                that.switchToFlavor(that.flavor);
+                this.switchToFlavor(this.flavor);
 
-                that.$tree.contextmenu({
+                this.$tree.contextmenu({
                     delegate: 'span.fancytree-title',
                     preventContextMenuForPopup: true,
                     show: false,
                     menu: [],
-                    beforeOpen(event, ui) {
+                    beforeOpen: (event, ui) => {
                         var node = $.ui.fancytree.getNode(ui.target);
 
                         if (node.folder) {
-                            that.$tree.contextmenu('replaceMenu', [
+                            this.$tree.contextmenu('replaceMenu', [
                                 {title: 'Create folder', cmd: 'createFolder', uiIcon: 'ui-icon-folder-collapsed'}
                             ]);
                         } else {
-                            that.$tree.contextmenu('replaceMenu', [
+                            this.$tree.contextmenu('replaceMenu', [
                                 {title: 'document', cmd: 'document'}
                             ]);
                         }
@@ -329,7 +349,8 @@ define([
                     }
                 });
             });
-        },
+        }
+
         doSearch(value) {
             if (value === '') {
                 this.inSearch = false;
@@ -362,12 +383,14 @@ define([
                 };
                 this.tree.filterNodes(filter, {autoExpand: true});
             }
-        },
+        }
+
         switchToFlavor(flavorName) {
             this.tree.filterBranches(function (node) {
                 return node.title === flavorName;
             });
-        },
+        }
+
         onActivate(event, data) {
             var node = data.node;
             this.$infoBox.empty();
@@ -376,11 +399,12 @@ define([
                 console.log(view);
                 this.$infoBox.append(
                     `View: ${node.title}<br><br>
-                    Created on: ${view.modificationDate.toLocaleString()}<br>
+                    Created on: ${view.creationDate.toLocaleString()}<br>
                     Last modified: ${view.modificationDate.toLocaleString()}`
                 );
             }
-        },
+        }
+
         onDblclick(event, data) {
             var node = data.node;
             if (node.folder) {
@@ -391,14 +415,15 @@ define([
             Versioning.switchView(view.getViewSwitcher(), true, {
                 withCredentials: true
             });
-        },
+        }
+
         getTree(views) {
             var tree = new Map();
 
             for (var i = 0; i < views.length; i++) {
                 var view = new RocView(views[i], this);
                 for (var flavor in view.content.flavors) {
-                    this.addFlavor(tree, view, flavor, view.content.flavors[flavor]);
+                    addFlavor(tree, view, flavor, view.content.flavors[flavor]);
                 }
             }
 
@@ -406,27 +431,15 @@ define([
             this.buildFancytree(fancytree, tree, [], true);
 
             return fancytree;
-        },
-        addFlavor(tree, view, flavorName, flavor) {
-            var map = tree.get(flavorName);
-            if (!map) {
-                map = new Map();
-                tree.set(flavorName, map);
-            }
-            for (var i = 0; i < flavor.length - 1; i++) {
-                if (!map.has(flavor[i])) {
-                    map.set(flavor[i], new Map());
-                }
-                map = map.get(flavor[i]);
-            }
-            map.set(flavor[i], view);
-        },
+        }
+
         buildFancytree(fancytree, tree, path, firstLevel) {
             for (var element of tree) {
                 this.buildElement(fancytree, element[0], element[1], path.concat(element[0]), firstLevel);
             }
             fancytree.sort(sortFancytree);
-        },
+        }
+
         buildElement(fancytree, name, value, path, firstLevel) {
             if (value instanceof Map) {
                 var element = {
@@ -448,21 +461,7 @@ define([
                 });
             }
         }
-    });
-
-    Object.defineProperty(RocViewManager.prototype, 'flavor', {
-        get() {
-            if (this._flavor) {
-                return this._flavor;
-            } else {
-                return this._flavor = window.sessionStorage.getItem('ci-visualizer-roc-views-flavor') || 'default';
-            }
-        },
-        set(value) {
-            this._flavor = value;
-            window.sessionStorage.setItem('ci-visualizer-roc-views-flavor', value);
-        }
-    });
+    }
 
     return RocViewManager;
 
@@ -476,4 +475,20 @@ define([
         }
         return a.folder ? -1 : 1;
     }
+
+    function addFlavor(tree, view, flavorName, flavor) {
+        var map = tree.get(flavorName);
+        if (!map) {
+            map = new Map();
+            tree.set(flavorName, map);
+        }
+        for (var i = 0; i < flavor.length - 1; i++) {
+            if (!map.has(flavor[i])) {
+                map.set(flavor[i], new Map());
+            }
+            map = map.get(flavor[i]);
+        }
+        map.set(flavor[i], view);
+    }
+
 });
