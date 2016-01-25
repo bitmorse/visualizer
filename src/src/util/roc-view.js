@@ -83,6 +83,16 @@ define(function () {
             return this.manager.deleteRequestDB('/' + this.id)
                 .then(retTrue, retFalse);
         }
+
+        rename(flavor, newName) {
+            var path = this.flavors[flavor];
+            var currentName = path[path.length - 1];
+            path[path.length - 1] = newName;
+            return this.save().then(retTrue, function () {
+                path[path.length - 1] = currentName;
+                return false;
+            });
+        }
     }
 
     return RocView;

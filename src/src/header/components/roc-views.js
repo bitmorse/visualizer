@@ -338,6 +338,7 @@ define([
                             ]);
                         } else {
                             this.$tree.contextmenu('replaceMenu', [
+                                {title: 'Rename', cmd: 'renameView', uiIcon: 'ui-icon-pencil'},
                                 {title: 'Delete', cmd: 'deleteView', uiIcon: 'ui-icon-trash'}
                             ]);
                         }
@@ -352,6 +353,9 @@ define([
                                 break;
                             case 'deleteView':
                                 this.deleteView(node);
+                                break;
+                            case 'renameView':
+                                this.renameView(node);
                                 break;
                             default:
                                 Debug.error(`unknown action: ${ui.cmd}`);
@@ -371,7 +375,11 @@ define([
             var dialog = UI.dialog(div, {
                 buttons: {
                     Save: () => {
-                        var name = input.val();
+                        var name = input.val().trim();
+
+                        if (name.length === 0) {
+                            return UI.showNotification('Name cannot be empty', 'error');
+                        }
 
                         // Check if folder already exists
                         var children = node.getChildren();
@@ -399,16 +407,43 @@ define([
         }
 
         deleteView(node) {
-            UI.confirm(`This will delete the view named "${node.title}" and all related data.<br>Are you sure?`, 'Yes, delete it!', 'Maybe not...').then(ok => {
-                if (ok) {
+            UI.confirm(`This will delete the view named "${node.title}" and all related data.<br>Are you sure?`, 'Maybe not...', 'Yes, delete it!').then(nok => {
+                if (!nok) {
                     node.data.view.remove().then(ok => {
                         if (ok) {
-                            UI.showNotification('View deleted');
+                            UI.showNotification('View deleted', 'success');
                             node.remove();
                         } else {
                             UI.showNotification('Error while deleting view', 'error');
                         }
                     });
+                }
+            });
+        }
+
+        renameView(node) {
+            var div = $(`<div>Renaming view "${node.title}"<br>New name: </div>`);
+            var input = $('<input type="text" />').appendTo(div);
+            var dialog = UI.dialog(div, {
+                buttons: {
+                    Rename: () => {
+                        var name = input.val().trim();
+
+                        if (name.length === 0) {
+                            return UI.showNotification('Name cannot be empty', 'error');
+                        }
+
+                        return node.data.view.rename(this.flavor, name)
+                            .then(ok => {
+                                if (ok) {
+                                    UI.showNotification('View was renamed', 'success');
+                                    node.setTitle(name);
+                                } else {
+                                    UI.showNotification('Error while renaming view', 'error');
+                                }
+                                dialog.dialog('destroy');
+                            });
+                    }
                 }
             });
         }
@@ -449,6 +484,7 @@ define([
 
         switchToFlavor(flavorName) {
             this.flavor = flavorName;
+            this.renderFlavor();
         }
 
         renderFlavor() {
