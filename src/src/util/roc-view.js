@@ -78,6 +78,11 @@ define(function () {
                     this.view.$creationDate = res.body.$creationDate;
                 });
         }
+
+        remove() {
+            return this.manager.deleteRequestDB('/' + this.id)
+                .then(retTrue, retFalse);
+        }
     }
 
     return RocView;

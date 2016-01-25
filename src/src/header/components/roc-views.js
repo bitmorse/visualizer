@@ -93,6 +93,10 @@ define([
             return request;
         }
 
+        deleteRequestDB(url) {
+            return superagent.del(this.rocDbUrl + url).withCredentials();
+        }
+
         verifyRoc() {
             return this.getRequest('/auth/session')
                 .then(res => {
@@ -325,6 +329,7 @@ define([
                     show: false,
                     menu: [],
                     beforeOpen: (event, ui) => {
+                        if (this.inSearch) return false;
                         var node = $.ui.fancytree.getNode(ui.target);
 
                         if (node.folder) {
@@ -333,7 +338,7 @@ define([
                             ]);
                         } else {
                             this.$tree.contextmenu('replaceMenu', [
-                                {title: 'document', cmd: 'document'}
+                                {title: 'Delete', cmd: 'deleteView', uiIcon: 'ui-icon-trash'}
                             ]);
                         }
 
@@ -344,6 +349,9 @@ define([
                         switch (ui.cmd) {
                             case 'createFolder':
                                 this.createFolder(node);
+                                break;
+                            case 'deleteView':
+                                this.deleteView(node);
                                 break;
                             default:
                                 Debug.error(`unknown action: ${ui.cmd}`);
@@ -386,6 +394,21 @@ define([
                         dialog.dialog('destroy');
                         this.renderFlavor();
                     }
+                }
+            });
+        }
+
+        deleteView(node) {
+            UI.confirm(`This will delete the view named "${node.title}" and all related data.<br>Are you sure?`, 'Yes, delete it!', 'Maybe not...').then(ok => {
+                if (ok) {
+                    node.data.view.remove().then(ok => {
+                        if (ok) {
+                            UI.showNotification('View deleted');
+                            node.remove();
+                        } else {
+                            UI.showNotification('Error while deleting view', 'error');
+                        }
+                    });
                 }
             });
         }
