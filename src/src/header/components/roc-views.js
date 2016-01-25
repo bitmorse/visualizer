@@ -282,6 +282,7 @@ define([
                 this.$tree.fancytree({
                     source: tree,
                     toggleEffect: false,
+                    debugLevel: 0,
                     extensions: ['dnd', 'filter'],
                     dnd: {
                         autoExpandMS: 300,
@@ -316,7 +317,7 @@ define([
                 });
                 this.tree = this.$tree.fancytree('getTree');
 
-                this.switchToFlavor(this.flavor);
+                this.renderFlavor();
 
                 this.$tree.contextmenu({
                     delegate: 'span.fancytree-title',
@@ -336,13 +337,18 @@ define([
                             ]);
                         }
 
-                        // todo handle context menu
-                        console.log('TODO: handle context menu');
                         node.setActive();
                     },
-                    select(event, ui) {
-                        // todo handle context menu select
-                        console.log('TODO: handle context menu select');
+                    select: (event, ui) => {
+                        var node = $.ui.fancytree.getNode(ui.target);
+                        switch (ui.cmd) {
+                            case 'createFolder':
+                                this.createFolder(node);
+                                break;
+                            default:
+                                Debug.error(`unknown action: ${ui.cmd}`);
+                                break;
+                        }
                     },
                     createMenu(event) {
                         $(event.target).css('z-index', 10000);
@@ -351,10 +357,43 @@ define([
             });
         }
 
+        createFolder(node) {
+            var div = $('<div>Name of the directory: </div>');
+            var input = $('<input type="text" />').appendTo(div);
+            var dialog = UI.dialog(div, {
+                buttons: {
+                    Save: () => {
+                        var name = input.val();
+
+                        // Check if folder already exists
+                        var children = node.getChildren();
+                        if (children) {
+                            for (var i = 0; i < children.length; i++) {
+                                if (children[i].title === name && children[i].folder) {
+                                    return UI.showNotification(`Folder ${name} already exists`, 'error');
+                                }
+                            }
+                        }
+
+                        node.setExpanded(true);
+                        var newNode = node.addNode({
+                            folder: true,
+                            title: name,
+                            path: node.data.path.concat(name)
+                        });
+                        node.sortChildren(sortFancytree);
+                        newNode.setActive();
+                        dialog.dialog('destroy');
+                        this.renderFlavor();
+                    }
+                }
+            });
+        }
+
         doSearch(value) {
             if (value === '') {
                 this.inSearch = false;
-                this.switchToFlavor(this.flavor);
+                this.renderFlavor();
                 for (var child of this.tree.rootNode.getChildren()) {
                     child.visit(function (node) {
                         node.setExpanded(false);
@@ -386,9 +425,11 @@ define([
         }
 
         switchToFlavor(flavorName) {
-            this.tree.filterBranches(function (node) {
-                return node.title === flavorName;
-            });
+            this.flavor = flavorName;
+        }
+
+        renderFlavor() {
+            this.tree.filterBranches(node => node.title === this.flavor);
         }
 
         onActivate(event, data) {
@@ -396,7 +437,6 @@ define([
             this.$infoBox.empty();
             if (!node.folder) {
                 var view = node.data.view;
-                console.log(view);
                 this.$infoBox.append(
                     `View: ${node.title}<br><br>
                     Created on: ${view.creationDate.toLocaleString()}<br>
