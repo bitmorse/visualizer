@@ -337,9 +337,20 @@ define([
                                 {title: 'Create folder', cmd: 'createFolder', uiIcon: 'ui-icon-folder-collapsed'}
                             ]);
                         } else {
+                            var flavors = this.flavors;
+                            var menuFlavors = [];
+                            var viewFlavors = node.data.view.flavors;
+                            for (var i = 0; i < flavors.length; i++) {
+                                var has = !!viewFlavors[flavors[i]];
+                                menuFlavors.push({
+                                    title: (has ? '✓ ' : '') + flavors[i],
+                                    cmd: 'toggleFlavor'
+                                });
+                            }
                             this.$tree.contextmenu('replaceMenu', [
                                 {title: 'Rename', cmd: 'renameView', uiIcon: 'ui-icon-pencil'},
-                                {title: 'Delete', cmd: 'deleteView', uiIcon: 'ui-icon-trash'}
+                                {title: 'Delete', cmd: 'deleteView', uiIcon: 'ui-icon-trash'},
+                                {title: 'Flavors', children: menuFlavors}
                             ]);
                         }
 
@@ -357,6 +368,9 @@ define([
                             case 'renameView':
                                 this.renameView(node);
                                 break;
+                            //case 'toggleFlavor':
+                            //    this.toggleFlavor(node);
+                            //    break;
                             default:
                                 Debug.error(`unknown action: ${ui.cmd}`);
                                 break;
@@ -518,13 +532,17 @@ define([
 
         getTree(views) {
             var tree = new Map();
+            var flavors = new Set();
 
             for (var i = 0; i < views.length; i++) {
                 var view = new RocView(views[i], this);
                 for (var flavor in view.content.flavors) {
+                    flavors.add(flavor);
                     addFlavor(tree, view, flavor, view.content.flavors[flavor]);
                 }
             }
+
+            this.flavors = Array.from(flavors).sort();
 
             var fancytree = [];
             this.buildFancytree(fancytree, tree, [], true);
