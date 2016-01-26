@@ -24,14 +24,12 @@ define(['jquery', 'src/header/components/default', 'src/util/versioning', 'src/u
         },
 
         _onClick: function () {
-            var that = this;
-
             this.setStyleOpen(this._open);
 
             if (this._open) {
                 if (currentMenu && (currentMenu !== this) && currentMenu._open)
                     currentMenu.onClick();
-                currentMenu = that;
+                currentMenu = this;
 
                 this.doElements();
             } else {
@@ -41,7 +39,6 @@ define(['jquery', 'src/header/components/default', 'src/util/versioning', 'src/u
         },
 
         doElements: function () {
-            var that = this;
             var uri = new URI(document.location.href);
             var query = uri.query(true);
             var currentVersion;
@@ -50,26 +47,25 @@ define(['jquery', 'src/header/components/default', 'src/util/versioning', 'src/u
             } else {
                 currentVersion = 'v' + Versioning.version;
             }
-            getVersions().then(function (versions) {
-                var ul = that.$_elToOpen = $('<ul />'),
+            getVersions().then(versions => {
+                var ul = this.$_elToOpen = $('<ul />'),
                     i = 0,
                     l = versions.length;
                 for (; i < l; i++) {
                     var version = versions[i];
                     var bool = currentVersion === version;
-                    ul.append(that._buildSubElement(versions[i], bool));
+                    ul.append(this._buildSubElement(versions[i], bool));
                 }
-                that.open();
+                this.open();
             });
         },
 
         _buildSubElement: function (version, isSame) {
             var text = (isSame ? '• ' : '') + version;
-            var that = this,
-                dom = $('<li />').text(text);
-            dom.addClass('hasEvent').bind('click', function () {
-                that.load(version);
-                that.onClick();
+            var dom = $('<li />').text(text);
+            dom.addClass('hasEvent').bind('click', () => {
+                this.load(version);
+                this.onClick();
             });
             return dom;
         },

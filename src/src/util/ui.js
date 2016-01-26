@@ -156,7 +156,7 @@ define([
                     };
                 }
 
-                exports.dialog($dialog, {
+                const dialog = exports.dialog($dialog, {
                     buttons: buttons,
                     close: function () {
                         resolve();
@@ -165,7 +165,6 @@ define([
                         grid.resizeCanvas();
                     },
                     open: function () {
-                        var that = this;
                         $container.addClass('flex-main-container');
                         $slick.addClass('flex-1');
                         $header = $('<div>');
@@ -181,7 +180,7 @@ define([
                             lastClickedId = data.mapRowsToIds([args.row])[0];
                             if (options.noConfirmation) {
                                 resolve(lastClickedId);
-                                $(that).dialog('close');
+                                dialog.dialog('close');
                             }
                         });
                         grid.init();
@@ -414,15 +413,12 @@ define([
     exports.couchShare = function (options, dialogOptions) {
         var uniqid = Util.getNextUniqueId();
         var dialog = $('<div>').html('<h3>Click the share button to make a snapshot of your view and generate a tiny URL</h3><br>').append(
-            new Button('Share', function () {
-                var that = this;
+            new Button('Share', () => {
                 if (!options.disabled) {
-                    Sharer.share(options).then(function (tinyUrl) {
+                    Sharer.share(options).then(tinyUrl => {
                         $('#' + uniqid).val(tinyUrl).focus().select();
-                        that.disable();
-                    }, function () {
-                        $('#' + uniqid).val('error');
-                    });
+                        this.disable();
+                    }, () => $('#' + uniqid).val('error'));
                 }
             }, {color: 'blue'}).render()
         ).append(

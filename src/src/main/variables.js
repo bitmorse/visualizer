@@ -121,19 +121,19 @@ define(['jquery', 'src/util/util', 'src/main/datas', 'src/util/debug'], function
 
     $.extend(true, Variable.prototype, {
 
-        setName: function (name) {
+        setName(name) {
             this._name = name;
         },
 
-        getName: function () {
+        getName() {
             return this._name;
         },
 
-        isDefined: function () {
+        isDefined() {
             return this.defined;
         },
 
-        setjPath: function (jpath, callback) { // Reroute variable to some other place in the data
+        setjPath(jpath, callback) { // Reroute variable to some other place in the data
 
             this._jpath = jpath;
 
@@ -146,36 +146,36 @@ define(['jquery', 'src/util/util', 'src/main/datas', 'src/util/debug'], function
         },
 
 
-        getjPath: function () {
+        getjPath() {
             return this._jpath;
         },
 
 
-        createData: function (jpath, dataToCreate, callback) {
+        createData(jpath, dataToCreate, callback) {
             data.setChild(jpath, dataToCreate);
             this.setjPath(jpath, callback);
         },
 
-        getData: function () {
+        getData() {
             return this._value;
         },
 
-        setData: function (newData) { // CAUTION. This function will overwrite source data
+        setData(newData) { // CAUTION. This function will overwrite source data
             data.setChild(this.getjPath(), newData);
             this._setValue(newData);
             newData.triggerChange();
         },
 
-        _setValue: function (value) {
+        _setValue(value) {
             this._value = value;
             this.defined = true;
         },
 
-        getValue: function () {
+        getValue() {
             return this._value;
         },
 
-        listen: function (module, callback) {
+        listen(module, callback) {
             var id = module.getId();
             // If the module already listens for this variable, we should definitely not listen for it again.
             if (this.listenedBy[id]) {
@@ -189,7 +189,7 @@ define(['jquery', 'src/util/util', 'src/main/datas', 'src/util/debug'], function
             });
         },
 
-        unlisten: function (moduleId) {
+        unlisten(moduleId) {
             if (this.listenedBy[moduleId]) {
                 delete this.listenedBy[moduleId];
                 for (var i = 0, ii = this.listeners.length; i < ii; i++) {
@@ -201,57 +201,39 @@ define(['jquery', 'src/util/util', 'src/main/datas', 'src/util/debug'], function
             }
         },
 
-        triggerChange: function (callback, moduleId) {
-
-            var that = this;
-
+        triggerChange(callback, moduleId) {
             if (this.rejectCurrentPromise) {
-
                 this.rejectCurrentPromise('latency');
                 this.rejectCurrentPromise = false;
             }
 
-            this.currentPromise = new Promise(function (resolve, reject) {
+            this.currentPromise = new Promise((resolve, reject) => {
 
-                that.rejectCurrentPromise = reject;
+                this.rejectCurrentPromise = reject;
 
                 var _resolve = resolve,
                     _reject = reject;
 
-                data.trace(that._jpath).then(function gotDataChild(value) {
-
+                data.trace(this._jpath).then(value => {
                     if (callback) {
-
-                        new Promise(function (resolve, reject) {
-
+                        new Promise((resolve, reject) => {
                             callback(value, resolve, reject);
-
                         })
-                            .then(function (value) {
-
+                            .then(value => {
                                 value = DataObject.check(value, true);
-                                that._setValue(value);
+                                this._setValue(value);
                                 _resolve(value);
-
-                            }, function (error) {
-
+                            }, error => {
                                 Debug.warn('Error during variable filtering : ', error);
                                 _reject('filter');
-
                             });
-
                     } else {
-
-                        that._setValue(value);
+                        this._setValue(value);
                         _resolve(value);
-
                     }
-
-                }, function (err) {
-                    _reject(err);
-                });
+                }, err => _reject(err));
             });
-            this.currentPromise.catch(function (err) {
+            this.currentPromise.catch(err => {
                 if (
                     err === 'filter' || // Already caught
                     err === 'latency' // Expected
@@ -261,14 +243,14 @@ define(['jquery', 'src/util/util', 'src/main/datas', 'src/util/debug'], function
                 Debug.error('Error in getting the variable through variable.js', err.stack || err);
             });
 
-            for (var i = 0, l = that.listeners.length; i < l; i++) {
-                if (that.listeners[i].id !== moduleId) {
-                    that.listeners[i].callback.call(that, that);
+            for (var i = 0, l = this.listeners.length; i < l; i++) {
+                if (this.listeners[i].id !== moduleId) {
+                    this.listeners[i].callback.call(this, this);
                 }
             }
         },
 
-        onReady: function () {
+        onReady() {
             return this.currentPromise;
         }
     });

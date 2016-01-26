@@ -26,11 +26,9 @@ define([
     var regAlphaNum = /^[a-zA-Z0-9]+$/;
 
     Util.inherits(CouchDBManager, Default, {
-        initImpl: function () {
-            var that = this;
-
+        initImpl() {
             $(document).keydown(
-                function (event) {
+                event => {
                     // If Control or Command key is pressed and the S key is pressed
                     // run save function. 83 is the key code for S.
                     if ((event.ctrlKey || event.metaKey) && !event.altKey && event.which == 83) {
@@ -40,52 +38,50 @@ define([
                         var m = reg.exec(viewUrl);
                         var loadedDocId = m[1];
                         var nodes = [];
-                        if (!that.ftree) {
+                        if (!this.ftree) {
                             ui.showNotification('Cannot save, couchdb tree not loaded yet', 'info');
                             return;
                         }
-                        that.ftree.visit(function (n) {
-                            nodes.push(n);
-                        });
-                        nodes = nodes.filter(function (n) {
+                        this.ftree.visit(n => nodes.push(n));
+                        nodes = nodes.filter(n => {
                             return !n.folder && n.data.doc && n.data.doc._id === loadedDocId;
                         });
                         if (!nodes.length) return;
                         var compiled = _.template('<table>\n    <tr>\n        <td style="vertical-align: top;"><b>Document id</b></td>\n        <td><%= doc._id %></td>\n    </tr>\n    <tr>\n        <td style="vertical-align: top;"><b>Flavor</b></td>\n        <td><%= flavor %></td>\n    </tr>\n    <tr>\n        <td style="vertical-align: top;"><b>Name</b></td>\n        <td><% print(flavors[flavors.length-1]) %></td>\n    </tr>\n    <tr>\n        <td style="vertical-align: top;"><b>Location</b></td>\n        <td><li><% print(flavors.join(\'</li><li>\')) %></li></td>\n    </tr>\n</table>');
                         ui.dialog(compiled({
                             doc: nodes[0].data.doc,
-                            flavor: that.flavor,
-                            flavors: nodes[0].data.doc.flavors[that.flavor]
+                            flavor: this.flavor,
+                            flavors: nodes[0].data.doc.flavors[this.flavor]
                         }), {
                             width: '400px',
                             buttons: {
-                                'Save View': function () {
+                                'Save View': () => {
                                     $(this).dialog('close');
-                                    that.saveNode('View', nodes[0]).then(function () {
+                                    this.saveNode('View', nodes[0]).then(() => {
                                         ui.showNotification('View saved', 'success');
-                                    }, function (e) {
-                                        ui.showNotification(that.getErrorContent(e.status), 'error');
+                                    }, e => {
+                                        ui.showNotification(this.getErrorContent(e.status), 'error');
                                     });
                                 },
-                                'Save Data': function () {
+                                'Save Data': () => {
                                     $(this).dialog('close');
-                                    that.saveNode('Data', nodes[0]).then(function () {
+                                    this.saveNode('Data', nodes[0]).then(() => {
                                         ui.showNotification('Data saved', 'success');
-                                    }, function (e) {
-                                        ui.showNotification(that.getErrorContent(e.status), 'error');
+                                    }, e => {
+                                        ui.showNotification(this.getErrorContent(e.status), 'error');
                                     });
                                 },
-                                'Save Both': function () {
+                                'Save Both': () => {
                                     $(this).dialog('close');
-                                    that.saveNode('View', nodes[0]).then(function () {
+                                    this.saveNode('View', nodes[0]).then(() => {
                                         ui.showNotification('View saved', 'success');
-                                        that.saveNode('Data', nodes[0]).then(function () {
+                                        this.saveNode('Data', nodes[0]).then(() => {
                                             ui.showNotification('Data saved', 'success');
-                                        }, function (e) {
-                                            ui.showNotification(that.getErrorContent(e.status), 'error');
+                                        }, e => {
+                                            ui.showNotification(this.getErrorContent(e.status), 'error');
                                         });
-                                    }, function (e) {
-                                        ui.showNotification(that.getErrorContent(e.status), 'error');
+                                    }, e => {
+                                        ui.showNotification(this.getErrorContent(e.status), 'error');
                                     });
                                 }
                             }
@@ -112,24 +108,23 @@ define([
             this.checkDatabase();
         },
 
-        beforeUrl: function () {
-            var that = this;
+        beforeUrl() {
             var url = this.options.beforeUrl;
             $.ajax({
                 type: 'GET',
                 url: url,
-                success: function () {
+                success: () => {
                     Debug.info('CouchDB: beforeUrl success');
-                    that.ready = true;
+                    this.ready = true;
                 },
-                error: function (err) {
+                error: err => {
                     Debug.info('CouchDB: beforeUrl error', err);
-                    that.ready = true;
+                    this.ready = true;
                 }
             });
         },
 
-        getErrorContent: function (e) {
+        getErrorContent(e) {
             var content;
             if (typeof e === 'number') {
                 switch (e) {
@@ -166,41 +161,40 @@ define([
             return content;
         },
 
-        showError: function (e, type) {
+        showError(e, type) {
             var color = 'red';
             if (type === 2)
                 color = 'green';
             var content = this.getErrorContent(e, type);
             this.errorP.text(content).css('color', color).show().delay(3000).fadeOut();
         },
-        getFormContent: function (type) {
+        getFormContent(type) {
             return $('#' + this.cssId(type)).val().trim();
         },
-        setFormContent: function (type, value) {
+        setFormContent(type, value) {
             $('#' + this.cssId(type)).val(value);
         },
-        checkDatabase: function () {
-            var that = this;
+        checkDatabase() {
             $.couch.info({
-                success: function (e) {
-                    that.ok = true;
+                success: () => {
+                    this.ok = true;
                 },
-                error: function (e, f, g) {
+                error(e, f, g) {
                     Debug.error('CouchDB header : database connection error. Code:' + e + '.', g);
                 }
             });
         },
-        cssId: function (name) {
-            return 'ci-couchdb-header-' + this.id + '-' + name;
+        cssId(name) {
+            return `ci-couchdb-header-${this.id}-${name}`;
         },
-        changeFlavor: function (flavorName) {
+        changeFlavor(flavorName) {
             if (!regAlphaNum.test(flavorName))
                 return this.showError('Flavor name must be alphanumeric.');
             this.flavor = flavorName;
             this.setFormContent('flavor-input', flavorName);
             this.loadFlavor();
         },
-        _onClick: function () {
+        _onClick() {
             if (this.ok && this.ready) {
                 this.setStyleOpen(this._open);
                 if (this._open) {
@@ -217,7 +211,7 @@ define([
                 ui.showNotification('Couchdb button not ready');
             }
         },
-        createMenu: function (checkSession) {
+        createMenu(checkSession) {
 
             if (!this.$_elToOpen) {
                 this.$_elToOpen = $('<div>').css('width', 560);
@@ -226,15 +220,14 @@ define([
             }
 
             if (checkSession) {
-                var that = this;
                 $.couch.session({
-                    success: function (data) {
+                    success: data => {
                         if (data.userCtx.name === null) {
-                            that.openMenu('login');
+                            this.openMenu('login');
                         } else {
-                            that.loggedIn = true;
-                            that.username = data.userCtx.name;
-                            that.openMenu('tree');
+                            this.loggedIn = true;
+                            this.username = data.userCtx.name;
+                            this.openMenu('tree');
                         }
                     }
                 });
@@ -245,7 +238,7 @@ define([
             }
 
         },
-        openMenu: function (which) {
+        openMenu(which) {
             if (which === this.lastMenu) {
                 return;
             } else if (which === 'tree') {
@@ -256,7 +249,7 @@ define([
                 this.lastMenu = 'login';
             }
         },
-        load: function (node, rev) {
+        load(node, rev) {
             var result = {};
             if (node.data.hasData) {
                 result.data = {
@@ -275,9 +268,8 @@ define([
             this.lastKeyLoaded = node.key;
         },
 
-        saveMeta: function (val) {
-            var that = this;
-            var node = that.currentDocument;
+        saveMeta(val) {
+            var node = this.currentDocument;
             var doc = node.data.doc;
             if (val && val.keywords && val.keywords.value) {
                 doc.keywords = val.keywords.value;
@@ -286,23 +278,20 @@ define([
                 'content_type': 'application/json',
                 'data': btoa(unescape(encodeURIComponent(JSON.stringify(val))))
             };
-            that.database.saveDoc(doc, {
-                success: function (data) {
+            this.database.saveDoc(doc, {
+                success: data => {
                     doc._rev = data.rev;
                     node.data.hasMeta = true;
                     if (node.children)
                         node.lazyLoad(true);
 
-                    that.showError('meta saved.', 2);
+                    this.showError('meta saved.', 2);
                 },
-                error: function () {
-                    that.showError.apply(that, arguments);
-                }
+                error: (...args) => this.showError(...args)
             });
         },
 
-        saveNode: function (type, node) {
-            var that = this;
+        saveNode(type, node) {
             if (!node) {
                 var msg = 'Cannot save node (undefined)';
                 this.showError(msg);
@@ -315,20 +304,18 @@ define([
                 'data': btoa(unescape(encodeURIComponent(content)))
             };
 
-            return Promise.resolve(that.database.saveDoc(doc, {
-                success: function () {
+            return Promise.resolve(this.database.saveDoc(doc, {
+                success: () => {
                     node.data['has' + type] = true;
                     if (node.children)
                         node.lazyLoad(true);
-                    that.showError(type + ' saved.', 2);
+                    this.showError(type + ' saved.', 2);
                 },
-                error: function () {
-                    that.showError.apply(that, arguments);
-                }
+                error: (...args) => this.showError(...args)
             }));
         },
 
-        save: function (type, name) {
+        save(type, name) {
 
             if (name.length < 1)
                 return;
@@ -353,8 +340,6 @@ define([
             }
 
             var doc;
-            var that = this;
-
             if (child && !child.folder) {
                 // This doc has revs which means it has been saved to couchdb already
                 // Therefore we only need to update the attachment
@@ -365,16 +350,14 @@ define([
                     'data': btoa(unescape(encodeURIComponent(content)))
                 };
 
-                return Promise.resolve(that.database.saveDoc(doc, {
-                    success: function () {
+                return Promise.resolve(this.database.saveDoc(doc, {
+                    success: () => {
                         child.data['has' + type] = true;
                         if (child.children)
                             child.lazyLoad(true);
-                        that.showError(type + ' saved.', 2);
+                        this.showError(type + ' saved.', 2);
                     },
-                    error: function () {
-                        that.showError.apply(that, arguments);
-                    }
+                    error: (...args) => this.showError(...args)
                 }));
             } else {
                 // The doc is new so we need to save the whole document
@@ -397,7 +380,7 @@ define([
                     'data': btoa(unescape(encodeURIComponent(content)))
                 };
                 this.database.saveDoc(doc, {
-                    success: function (data) {
+                    success: data => {
                         doc._rev = data.rev;
                         var newNode = {
                             doc: doc,
@@ -409,12 +392,12 @@ define([
                         last.node.addNode(newNode);
                         if (!last.node.expanded)
                             last.node.toggleExpanded();
-                        that.showError(type + ' saved.', 2);
+                        this.showError(type + ' saved.', 2);
                     }
                 });
             }
         },
-        mkdir: function (name) {
+        mkdir(name) {
             if (name.length < 1)
                 return;
             if (name.indexOf(':') !== -1)
@@ -449,41 +432,35 @@ define([
             $(newNode.li).find('.fancytree-title').trigger('click');
 
         },
-        login: function (username, password) {
-            var that = this;
+        login(username, password) {
             $.couch.login({
                 name: username,
                 password: password,
-                success: function (data) {
-                    that.loggedIn = true;
-                    that.username = username;
-                    that.openMenu('tree');
+                success: () => {
+                    this.loggedIn = true;
+                    this.username = username;
+                    this.openMenu('tree');
                 },
-                error: function () {
-                    that.showError.apply(that, arguments);
-                }
+                error: (...args) => this.showError(...args)
             });
         },
-        logout: function () {
-            var that = this;
+        logout() {
             var prom = Promise.resolve($.couch.logout({
-                success: function () {
-                    that.loggedIn = false;
-                    that.username = null;
-                    that.openMenu('login');
+                success: () => {
+                    this.loggedIn = false;
+                    this.username = null;
+                    this.openMenu('login');
                 }
             }));
-            prom.catch(function (e) {
+            prom.catch(e => {
                 if (e.status === 401) window.location = window.location.href;
             });
         },
-        renderLoginMethods: function () {
-            var that = this;
-
-            function doLogin() {
-                that.login(that.getFormContent('login-username'), that.getFormContent('login-password'));
+        renderLoginMethods() {
+            var doLogin = () => {
+                this.login(this.getFormContent('login-username'), this.getFormContent('login-password'));
                 return false;
-            }
+            };
 
             var openLogin = this.openLogin.bind(this);
             for (var i = 0; i < this.options.loginMethods.length; i++) {
@@ -502,7 +479,7 @@ define([
                         this.loginForm.append('<label for="' + this.cssId('login-username') + '">Username </label><input type="text" id="' + this.cssId('login-username') + '" /><br>');
                         this.loginForm.append('<label for="' + this.cssId('login-password') + '">Password </label><input type="password" id="' + this.cssId('login-password') + '" /><br><br>');
                         this.loginForm.append(new Button('Login', doLogin, {color: 'green'}).render());
-                        this.loginForm.bind('keypress', function (e) {
+                        this.loginForm.bind('keypress', e => {
                             if (e.charCode === 13)
                                 return doLogin();
                         });
@@ -511,32 +488,28 @@ define([
             }
         },
 
-        openLogin: function (e) {
+        openLogin(e) {
             e.preventDefault();
             var url = e.currentTarget.href;
             var win = window.open(url + '?close=true', 'CI_Couch_Login', 'menubar=no');
             clearInterval(this._loginWinI);
-            var that = this;
-            this._loginWinI = window.setInterval(function () {
+            this._loginWinI = window.setInterval(() => {
                 if (win.closed) {
-                    that.createMenu(true);
-                    clearInterval(that._loginWinI);
+                    this.createMenu(true);
+                    clearInterval(this._loginWinI);
                 }
             }, 100);
         },
 
-        getLoginForm: function () {
+        getLoginForm() {
             var loginForm = this.loginForm = $('<div>');
             loginForm.append('<h1>Login</h1>');
             this.renderLoginMethods();
             loginForm.append(this.errorP);
             return loginForm;
         },
-        getMenuContent: function () {
-
-            var that = this;
+        getMenuContent() {
             var dom = this.menuContent = $('<div>');
-
             var logout = $('<div>')
                 .append($('<p>')
                     .css('display', 'inline-block')
@@ -548,9 +521,7 @@ define([
                     .css('text-align', 'right')
                     .css('display', 'inline-block')
                     .append($('<a>Logout</a>')
-                        .on('click', function () {
-                            that.logout();
-                        })
+                        .on('click', () => this.logout())
                         .css({
                             color: 'blue',
                             'text-decoration': 'underline',
@@ -560,35 +531,33 @@ define([
 
             var flavorField = $('<input type="text" value="' + this.flavor + '" id="' + this.cssId('flavor-input') + '">');
 
-            function changeFlavor() {
-                var flavor = that.getFormContent('flavor-input');
-                if (that.flavor !== flavor) that.changeFlavor(flavor);
-            }
+            var changeFlavor = () => {
+                var flavor = this.getFormContent('flavor-input');
+                if (this.flavor !== flavor) this.changeFlavor(flavor);
+            };
 
             this.database.view('flavor/list', {
-                success: function (data) {
+                success: data => {
                     if (!data.rows.length)
-                        that.flavorList = ['default'];
+                        this.flavorList = ['default'];
                     else
-                        that.flavorList = data.rows[0].value;
+                        this.flavorList = data.rows[0].value;
                     flavorField.autocomplete({
                         appendTo: '#ci-visualizer',
                         minLength: 0,
-                        source: that.flavorList
-                    }).on('autocompleteselect', function (e, d) {
+                        source: this.flavorList
+                    }).on('autocompleteselect', (e, d) => {
                         var flavor = d.item.value;
-                        if (that.flavor !== flavor) that.changeFlavor(flavor);
+                        if (this.flavor !== flavor) this.changeFlavor(flavor);
                         flavorField.blur();
-                    }).on('keypress', function (e) {
+                    }).on('keypress', e => {
                         if (e.keyCode === 13) {
                             changeFlavor();
                             flavorField.blur();
                         }
                     });
                 },
-                error: function (status) {
-                    Debug.warn(status);
-                },
+                error: status => Debug.warn(status),
                 key: this.username
             });
 
@@ -602,94 +571,71 @@ define([
                 'width': '300px'
             };
             var treeContainer = $('<div>').attr('id', this.cssId('tree')).css(treeCSS).appendTo(dom);
-            this.makePublicButton = new Button('Make Public', function () {
-                ui.confirm('You are about to make your view public. This action is irreversible. It will enable anybody to access the saved view and data. Do you want to proceed?', 'Proceed', 'Cancel').then(function (proceed) {
-                    if (!proceed || !that.currentDocument) return;
-                    var node = that.currentDocument;
+            this.makePublicButton = new Button('Make Public', () => {
+                ui.confirm('You are about to make your view public. This action is irreversible. It will enable anybody to access the saved view and data. Do you want to proceed?', 'Proceed', 'Cancel').then(proceed => {
+                    if (!proceed || !this.currentDocument) return;
+                    var node = this.currentDocument;
                     var doc = node.data.doc;
                     doc.isPublic = true;
-                    that.database.saveDoc(doc, {
-                        success: function (data) {
+                    this.database.saveDoc(doc, {
+                        success: data => {
                             doc._rev = data.rev;
                             node.data.isPublic = true;
-                            that.updateButtons();
+                            this.updateButtons();
                             if (node.children)
                                 node.lazyLoad(true);
 
-                            that.showError('The view was made public', 2);
+                            this.showError('The view was made public', 2);
                         },
-                        error: function () {
-                            that.showError.apply(that, arguments);
-                        }
+                        error: (...args) => this.showError(...args)
                     });
                 });
             }, {color: 'red'});
             dom.append($('<div style="width:560px; height:35px;">').append('<input type="text" id="' + this.cssId('docName') + '"/>')
-                    .append(new Button('Edit Meta', function () {
-                        that.metaData();
-                    }, {color: 'blue'}).render())
-                    .append(new Button('Save data', function () {
-                        that.save('Data', that.getFormContent('docName'));
-                    }, {color: 'red'}).render())
-                    .append(new Button('Save view', function () {
-                        that.save('View', that.getFormContent('docName'));
-                    }, {color: 'red'}).render())
-                    .append(new Button('Mkdir', function () {
-                        that.mkdir(that.getFormContent('docName'));
-                    }, {color: 'blue'}).render())
-                    .append(this.errorP)
-            );
+                .append(new Button('Edit Meta', () => this.metaData(), {color: 'blue'}).render())
+                .append(new Button('Save data', () => this.save('Data', this.getFormContent('docName')), {color: 'red'}).render())
+                .append(new Button('Save view', () => this.save('View', this.getFormContent('docName')), {color: 'red'}).render())
+                .append(new Button('Mkdir', () => this.mkdir(this.getFormContent('docName')), {color: 'blue'}).render())
+                .append(this.errorP));
 
-            function uploadFiles() {
-                if (!that.currentDocument) return;
-                var docUrl = that.dbUrl + '/' + that.currentDocument.data.doc._id;
+            var uploadFiles = () => {
+                if (!this.currentDocument) return;
+                var docUrl = this.dbUrl + '/' + this.currentDocument.data.doc._id;
                 var couchA = new CouchdbAttachments(docUrl);
-                couchA.fetchList().then(function (attachments) {
-                    uploadUi.uploadDialog(attachments, 'couch').then(function (toUpload) {
+                couchA.fetchList().then(attachments => {
+                    uploadUi.uploadDialog(attachments, 'couch').then(toUpload => {
                         if (!toUpload) return;
                         API.loading(loadingId, 'Uploading files...');
                         var parts;
-                        parts = _.partition(toUpload, function (v) {
-                            return v.toDelete;
-                        });
+                        parts = _.partition(toUpload, v => v.toDelete);
                         var toDelete = parts[0];
-                        parts = _.partition(parts[1], function (v) {
-                            return v.size < 10 * 1024 * 1024;
-                        });
+                        parts = _.partition(parts[1], v => v.size < 10 * 1024 * 1024);
 
                         var largeUploads = parts[1];
                         var smallUploads = parts[0];
 
                         var prom = Promise.resolve();
 
-                        prom = prom.then(function () {
-                            return couchA.remove(_.pluck(toDelete, 'name'));
-                        });
-                        for (var i = 0; i < largeUploads.length; i++) {
-                            (function (i) {
-                                prom = prom.then(function () {
-                                    return couchA.upload(largeUploads[i]);
-                                });
-                            })(i);
+                        prom = prom.then(() => couchA.remove(_.pluck(toDelete, 'name')));
+                        for (let i = 0; i < largeUploads.length; i++) {
+                            prom = prom.then(() => couchA.upload(largeUploads[i]));
                         }
-                        prom = prom.then(function () {
-                            return couchA.inlineUploads(smallUploads);
+                        prom = prom.then(() => couchA.inlineUploads(smallUploads));
+
+                        prom.then(() => {
+                            API.stopLoading(loadingId);
+                            this.showError('Files uploaded successfully', 2);
+                        }, () => {
+                            API.stopLoading(loadingId);
+                            this.showError('Files upload failed (at least partially)');
                         });
 
-                        prom.then(function () {
-                            API.stopLoading(loadingId);
-                            that.showError('Files uploaded successfully', 2);
-                        }, function () {
-                            API.stopLoading(loadingId);
-                            that.showError('Files upload failed (at least partially)');
-                        });
-
-                        prom.then(function () {
-                            that.loadFlavor(); // Reload flavor to update tree and linked documents
+                        prom.then(() => {
+                            this.loadFlavor(); // Reload flavor to update tree and linked documents
                         });
                     });
                 });
-            }
+            };
 
             dom.append('<hr>')
                 .append(this.makePublicButton.render().hide())
@@ -699,7 +645,7 @@ define([
 
             return dom;
         },
-        updateButtons: function () {
+        updateButtons() {
             var node = this.currentDocument;
             var dom = this.makePublicButton.getDom();
             if ((node && node.data && !node.data.isPublic && dom)) {
@@ -708,74 +654,25 @@ define([
                 dom.hide();
             }
         },
-        getMetaForm: function (node) {
-            var that = this;
+        getMetaForm(node) {
             var doc = node.data.doc;
-            return new Promise(function (resolve) {
+            return new Promise(resolve => {
                 $.ajax({
-                    url: that.database.uri + doc._id + '/meta.json', // always the last revision
+                    url: this.database.uri + doc._id + '/meta.json', // always the last revision
                     type: 'GET',
                     dataType: 'json',
-                    error: function (e) {
+                    error: e => {
                         Debug.warn('Could not get meta data...', e);
                         resolve({});
                     },
-                    success: function (data) {
-                        resolve(that.processMetaForm(data));
+                    success: data => {
+                        resolve(this.processMetaForm(data));
                     }
                 });
             });
         },
 
-        processMetaForm: function (obj) {
-            //var result = {
-            //    sections: {
-            //        metadata: [{
-            //            sections: {
-            //                keywords: [
-            //                    {
-            //                        "sections": {},
-            //                        "groups": {
-            //                            "group": [
-            //                                {
-            //                                    "contentType": ['html'],
-            //                                    "keyword": [
-            //                                        "showHelp"
-            //                                    ],
-            //                                    "contentText": [
-            //                                        "abc"
-            //                                    ],
-            //                                    "contentHtml": [
-            //                                        "xyz"
-            //                                    ]
-            //                                }
-            //                            ]
-            //                        }
-            //                    },
-            //                    {
-            //                        "sections": {},
-            //                        "groups": {
-            //                            "group": [
-            //                                {
-            //                                    "contentType": ['text'],
-            //                                    "keyword": [
-            //                                        "showHelp"
-            //                                    ],
-            //                                    "contentText": [
-            //                                        "abc"
-            //                                    ],
-            //                                    "contentHtml": [
-            //                                        "xyz"
-            //                                    ]
-            //                                }
-            //                            ]
-            //                        }
-            //                    }
-            //                ]
-            //            }
-            //        }]
-            //    }
-            //};
+        processMetaForm(obj) {
             var result = {
                 sections: {
                     metadata: [
@@ -808,10 +705,9 @@ define([
             return result;
         },
 
-        metaData: function () {
-            var that = this;
+        metaData() {
             if (!this.currentDocument) {
-                that.showError('No document selected');
+                this.showError('No document selected');
                 return;
             }
 
@@ -879,43 +775,38 @@ define([
             var form = new Form({});
 
             form.init({
-                onValueChanged: function (value) {
-                }
+                onValueChanged: value => {}
             });
 
             form.setStructure(structure);
-            form.onStructureLoaded().done(function () {
+            form.onStructureLoaded().done(() => {
                 var fill = {};
                 var prom;
-                if (!that.currentDocument.data.hasMeta) {
+                if (!this.currentDocument.data.hasMeta) {
                     prom = Promise.resolve({});
                 } else {
-                    prom = that.getMetaForm(that.currentDocument);
+                    prom = this.getMetaForm(this.currentDocument);
                 }
 
-                prom.then(function (fill) {
-                    form.fill(fill);
-                });
+                prom.then(fill => form.fill(fill));
             });
 
-            form.addButton('Cancel', {color: 'blue'}, function () {
-                div.dialog('close');
-            });
+            form.addButton('Cancel', {color: 'blue'}, () => div.dialog('close'));
 
-            form.addButton('Save', {color: 'green'}, function () {
+            form.addButton('Save', {color: 'green'}, () => {
                 var value = form.getValue();
-                that.saveMeta(that.getMetaFromForm(value));
+                this.saveMeta(this.getMetaFromForm(value));
                 div.dialog('close');
             });
 
-            form.onLoaded().done(function () {
+            form.onLoaded().done(() => {
                 div.html(form.makeDom(1, 0));
                 form.inDom();
             });
 
         },
 
-        getMetaFromForm: function (value) {
+        getMetaFromForm(value) {
             value = DataObject.check(value, true);
             var result = {};
             var x = value.getChildSync(['sections', 'metadata', 0, 'sections', 'keywords']);
@@ -937,13 +828,13 @@ define([
             }
             return result;
         },
-        lazyLoad: function (event, result) {
+        lazyLoad(event, result) {
             var id = result.node.data.doc._id;
             var def = $.Deferred();
             result.result = def.promise();
             this.database.openDoc(id, {
                 revs_info: true,
-                success: function (data) {
+                success: data => {
                     var info = data._revs_info,
                         l = info.length,
                         revs = [];
@@ -958,7 +849,7 @@ define([
                 }
             });
         },
-        clickNode: function (event, data) {
+        clickNode(event, data) {
             var folder;
             var node = folder = data.node, last;
 
@@ -993,10 +884,9 @@ define([
                 return false;
 
         },
-        loadFlavor: function () {
+        loadFlavor() {
             var proxyLazyLoad = $.proxy(this, 'lazyLoad'),
-                proxyClick = $.proxy(this, 'clickNode'),
-                that = this;
+                proxyClick = $.proxy(this, 'clickNode');
 
             var menuOptions = {
                 delegate: 'span.fancytree-title',
@@ -1006,11 +896,11 @@ define([
                     {title: 'Rename', cmd: 'rename', uiIcon: 'ui-icon-folder-collapsed'},
                     {title: 'Flavors', cmd: 'flavors', children: []}
                 ],
-                beforeOpen: function (event, ui) {
+                beforeOpen: (event, ui) => {
                     var node = $.ui.fancytree.getNode(ui.target);
                     if (node.folder)
                         return false;
-                    var tree = $('#' + that.cssId('tree'));
+                    var tree = $('#' + this.cssId('tree'));
                     var flavors = Object.keys(node.data.doc.flavors);
                     if (flavors.length === 1) {
                         tree.contextmenu('setEntry', 'delete', 'Delete');
@@ -1022,7 +912,7 @@ define([
                                 title: flavors[i],
                                 cmd: 'flavor'
                             };
-                            if (flavors[i] === that.flavor) {
+                            if (flavors[i] === this.flavor) {
                                 children[i].disabled = true;
                             }
                         }
@@ -1035,51 +925,43 @@ define([
                     }
                     node.setActive();
                 },
-                select: function (event, ui) {
+                select: (event, ui) => {
                     var node = $.ui.fancytree.getNode(ui.target);
-                    that.contextClick(node, ui.cmd, ui);
+                    this.contextClick(node, ui.cmd, ui);
                 },
-                createMenu: function (event) {
-                    $(event.target).css('z-index', 10000);
-                }
+                createMenu: event => $(event.target).css('z-index', 10000)
             };
 
             var dnd = {
                 preventVoidMoves: true,
                 preventRecursiveMoves: true,
                 autoExpandMS: 300,
-                dragStart: function (node) { // Can only move documents
+                dragStart: node => { // Can only move documents
                     return !node.folder && !node.data.rev;
                 },
-                dragEnter: function (target) { // Can only drop in a folder
+                dragEnter: target => { // Can only drop in a folder
                     return !!target.folder;
                 },
-                dragDrop: function (target, info) {
+                dragDrop: (target, info) => {
                     var theNode = info.otherNode;
                     if (target === theNode.parent) // Same folder, nothing to do
                         return false;
-                    var newKey = target.key.substring(that.flavor.length + 1);
+                    var newKey = target.key.substring(this.flavor.length + 1);
                     newKey += newKey.length ? ':' + theNode.title : theNode.title;
                     var newFlavor = newKey.split(':');
-                    that.database.view('flavor/docs', {
-                        success: function (data) {
+                    this.database.view('flavor/docs', {
+                        success: data => {
                             if (comparePaths(newFlavor, data.rows))
-                                return that.showError(21);
+                                return this.showError(21);
 
-                            theNode.data.doc.flavors[that.flavor] = newFlavor;
-                            that.database.saveDoc(theNode.data.doc, {
-                                success: function () {
-                                    theNode.moveTo(target, info.hitMode);
-                                },
-                                error: function () {
-                                    that.showError.apply(that, arguments);
-                                }
+                            theNode.data.doc.flavors[this.flavor] = newFlavor;
+                            this.database.saveDoc(theNode.data.doc, {
+                                success: () => theNode.moveTo(target, info.hitMode),
+                                error: (...args) => this.showError(...args)
                             });
                         },
-                        error: function (status) {
-                            Debug.warn(status);
-                        },
-                        key: [that.flavor, that.username],
+                        error: status => Debug.warn(status),
+                        key: [this.flavor, this.username],
                         include_docs: false
                     });
 
@@ -1094,9 +976,9 @@ define([
                     include_docs: true
                 },
                 {
-                    success: function (data) {
-                        var tree = createFullTree(data, that.flavor);
-                        var theTree = $('#' + that.cssId('tree'));
+                    success: data => {
+                        var tree = createFullTree(data, this.flavor);
+                        var theTree = $('#' + this.cssId('tree'));
                         theTree.fancytree({
                             toggleEffect: false,
                             extensions: ['dnd'],
@@ -1108,34 +990,28 @@ define([
                             activate: proxyClick
                         }).children('ul').css('box-sizing', 'border-box');
                         var thefTree = theTree.data('ui-fancytree').getTree();
-                        that.ftree = thefTree;
+                        this.ftree = thefTree;
                         thefTree.reload(tree);
-                        thefTree.getNodeByKey(that.flavor).toggleExpanded();
+                        thefTree.getNodeByKey(this.flavor).toggleExpanded();
                         theTree.contextmenu(menuOptions);
-                        if (that.lastKeyLoaded)
-                            thefTree.activateKey(that.lastKeyLoaded);
-                        if (that.currentDocument) {
+                        if (this.lastKeyLoaded)
+                            thefTree.activateKey(this.lastKeyLoaded);
+                        if (this.currentDocument) {
                             // When switching flavors, if this document is also
                             // in the new flavor we select it automatically
-                            var id = that.currentDocument.data.doc._id;
-                            var d = _.find(data, function (d) {
-                                return d.id === id;
-                            });
+                            var id = this.currentDocument.data.doc._id;
+                            var d = _.find(data, d => d.id === id);
                             if (d) {
-                                var key = _.flatten([that.flavor, d.value.flavors]).join(':');
+                                var key = _.flatten([this.flavor, d.value.flavors]).join(':');
                                 thefTree.activateKey(key);
                             }
                         }
                     },
-                    error: function (status) {
-                        Debug.warn(status);
-                    }
+                    error: status => Debug.warn(status)
                 }
             );
         },
-        contextClick: function (node, action, ctx) {
-            var that = this;
-
+        contextClick(node, action, ctx) {
             if (!node.folder) {
                 if (action === 'delete') {
                     if (node.data.rev)
@@ -1145,113 +1021,95 @@ define([
                     if ($.isEmptyObject(node.data.doc.flavors)) {  // No more flavors, delete document
                         node.data.doc._deleted = true;
                         this.database.saveDoc(node.data.doc, {
-                            success: function () {
-                                that.showError('Document deleted.', 2);
+                            success: () => {
+                                this.showError('Document deleted.', 2);
                                 node.remove();
                             },
-                            error: function () {
-                                that.showError.apply(that, arguments);
-                            }
+                            error: (...args) => this.showError(...args)
                         });
                     } else { // Update current doc
                         this.database.saveDoc(node.data.doc, {
-                            success: function () {
-                                that.showError('Flavor deleted.', 2);
+                            success: () => {
+                                this.showError('Flavor deleted.', 2);
                                 node.remove();
                             },
-                            error: function () {
-                                that.showError.apply(that, arguments);
-                            }
+                            error: (...args) => this.showError(...args)
                         });
                     }
                 } else if (action === 'rename') {
-                    ui.dialog('New name : <input type="text" id="' + this.cssId('newname') + '" value="' + node.title + '" />', {
+                    var dialog = ui.dialog('New name : <input type="text" id="' + this.cssId('newname') + '" value="' + node.title + '" />', {
                         buttons: {
-                            'Save': function () {
-                                var dialog = $(this);
+                            Save: () => {
                                 var doc = node.data.doc;
-                                var name = that.getFormContent('newname');
-                                var path = doc.flavors[that.flavor];
+                                var name = this.getFormContent('newname');
+                                var path = doc.flavors[this.flavor];
                                 var oldName = path[path.length - 1];
                                 path[path.length - 1] = name;
-                                that.database.view('flavor/docs', {
-                                    success: function (data) {
+                                this.database.view('flavor/docs', {
+                                    success: data => {
                                         if (comparePaths(path, data.rows)) {
                                             path[path.length - 1] = oldName;
-                                            return that.showError(21);
+                                            return this.showError(21);
                                         }
-                                        that.database.saveDoc(doc, {
-                                            success: function () {
+                                        this.database.saveDoc(doc, {
+                                            success: () => {
                                                 node.key = node.key.replace(/[^:]+$/, name);
                                                 node.setTitle(name);
                                                 dialog.dialog('destroy');
-                                                that.setFormContent('docName', name);
+                                                this.setFormContent('docName', name);
                                             },
-                                            error: function (status) {
-                                                Debug.warn(status);
-                                            }
+                                            error: status => Debug.warn(status)
                                         });
                                     },
-                                    error: function (status) {
-                                        Debug.warn(status);
-                                    },
-                                    key: [that.flavor, that.username],
+                                    error: status => Debug.warn(status),
+                                    key: [this.flavor, this.username],
                                     include_docs: false
                                 });
                             },
-                            'Cancel': function () {
-                                $(this).dialog('destroy');
-                            }
+                            Cancel: () => dialog.dialog('destroy')
                         }
                     });
                 } else if (action === 'newflavor') {
                     var div = $('<div>').html('Flavor :');
-                    ui.dialog(div, {
+                    var dialog = ui.dialog(div, {
                         buttons: {
-                            'Save': function () {
-                                var dialog = $(this);
+                            Save: () => {
                                 var doc = node.data.doc;
-                                var flavor = that.getFormContent('newflavorname');
+                                var flavor = this.getFormContent('newflavorname');
                                 if (doc.flavors[flavor])
-                                    that.showError(20);
+                                    this.showError(20);
                                 else {
-                                    var path = doc.flavors[that.flavor];
-                                    that.database.view('flavor/docs', {
-                                        success: function (data) {
+                                    var path = doc.flavors[this.flavor];
+                                    this.database.view('flavor/docs', {
+                                        success: data => {
                                             if (comparePaths(path, data.rows))
-                                                return that.showError(21);
+                                                return this.showError(21);
                                             doc.flavors[flavor] = path;
-                                            that.database.saveDoc(doc, {
-                                                success: function () {
-                                                    that.showError('Flavor ' + flavor + ' successfully added.', 2);
+                                            this.database.saveDoc(doc, {
+                                                success: () => {
+                                                    this.showError('Flavor ' + flavor + ' successfully added.', 2);
                                                     dialog.dialog('destroy');
                                                 },
-                                                error: function (status) {
-                                                    Debug.warn(status);
-                                                }
+                                                error: status => Debug.warn(status)
                                             });
                                         },
-                                        error: function (status) {
-                                            Debug.warn(status);
-                                        },
-                                        key: [flavor, that.username],
+                                        error: status => Debug.warn(status),
+                                        key: [flavor, this.username],
                                         include_docs: false
                                     });
                                 }
                             },
-                            'Cancel': function () {
-                                $(this).dialog('destroy');
-                            }
+                            Cancel: () => dialog.dialog('destroy')
                         },
                         title: 'New flavor'
                     });
                     div.append($('<input type="text" id="' + this.cssId('newflavorname') + '" />').autocomplete({
                         appendTo: '#ci-visualizer',
                         minLength: 0,
-                        source: that.flavorList
+                        source: this.flavorList
                     }));
                 } else if (action === 'flavor') {
-                    that.changeFlavor(ctx.item.text());
+                    this.changeFlavor(ctx.item.text());
                 } else if (action === 'flavors') {
                     // do nothing
                 } else {
@@ -1262,14 +1120,14 @@ define([
     });
 
     Object.defineProperty(CouchDBManager.prototype, 'flavor', {
-        get: function () {
+        get() {
             if (this._flavor) {
                 return this._flavor;
             } else {
                 return this._flavor = window.sessionStorage.getItem('ci-visualizer-pouchdb2-flavor') || 'default';
             }
         },
-        set: function (value) {
+        set(value) {
             this._flavor = value;
             window.sessionStorage.setItem('ci-visualizer-pouchdb2-flavor', value);
         }

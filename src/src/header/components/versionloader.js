@@ -20,14 +20,12 @@ define(['jquery', 'src/header/components/default', 'src/util/versioning', 'src/u
     Util.inherits(Element, Default, {
 
         _onClick: function () {
-            var that = this;
-
             this.setStyleOpen(this._open);
 
             if (this._open) {
                 if (currentMenu && (currentMenu !== this) && currentMenu._open)
                     currentMenu.onClick();
-                currentMenu = that;
+                currentMenu = this;
 
                 if (this.options.viewURL || this.options.dataURL)
                     this.load(this.options);
@@ -84,12 +82,11 @@ define(['jquery', 'src/header/components/default', 'src/util/versioning', 'src/u
         },
 
         _buildSubElement: function (el) {
-            var that = this,
-                dom = $('<li />').text(el.label || '');
+            var dom = $('<li />').text(el.label || '');
             if (el.viewURL || el.dataURL) {
-                dom.addClass('hasEvent').bind('click', function () {
-                    that.load(el);
-                    that.onClick();
+                dom.addClass('hasEvent').bind('click', () => {
+                    this.load(el);
+                    this.onClick();
                 });
             }
 

@@ -29,10 +29,9 @@ define([
             this.checkDatabase();
         },
         checkDatabase: function () {
-            var that = this;
             $.couch.info({
-                success: function (e) {
-                    that.ok = true;
+                success: e => {
+                    this.ok = true;
                 },
                 error: function (e, f, g) {
                     Debug.error('CouchDB header : database connection error. Code:' + e + '.', g);
@@ -65,18 +64,17 @@ define([
                 return;
             }
 
-            var that = this;
             this.$_elToOpen = $('<div>');
             this.errorP = $('<p id="' + this.cssId('error') + '" style="color: red;">');
 
             $.couch.session({
-                success: function (data) {
+                success: data => {
                     if (data.userCtx.name === null) {
-                        that.$_elToOpen.html(that.getLoginForm());
+                        this.$_elToOpen.html(this.getLoginForm());
                     } else {
-                        that.loggedIn = true;
-                        that.username = data.userCtx.name;
-                        that.$_elToOpen.html(that.getMenuContent());
+                        this.loggedIn = true;
+                        this.username = data.userCtx.name;
+                        this.$_elToOpen.html(this.getMenuContent());
                     }
                 }
             });
@@ -184,36 +182,31 @@ define([
 
         },
         login: function (username, password) {
-            var that = this;
             $.couch.login({
                 name: username,
                 password: password,
-                success: function (data) {
-                    that.loggedIn = true;
-                    that.username = username;
-                    that.$_elToOpen.html(that.getMenuContent());
+                success: () => {
+                    this.loggedIn = true;
+                    this.username = username;
+                    this.$_elToOpen.html(this.getMenuContent());
                 },
                 error: this.showError
             });
         },
         logout: function () {
-            var that = this;
             $.couch.logout({
-                success: function () {
-                    that.loggedIn = false;
-                    that.username = null;
-                    that.$_elToOpen.html(that.getLoginForm());
+                success: () => {
+                    this.loggedIn = false;
+                    this.username = null;
+                    this.$_elToOpen.html(this.getLoginForm());
                 }
             });
         },
         getLoginForm: function () {
-
-            var that = this;
-
-            function doLogin() {
-                that.login(that.getFormContent('login-username'), that.getFormContent('login-password'));
+            var doLogin = () => {
+                this.login(this.getFormContent('login-username'), this.getFormContent('login-password'));
                 return false;
-            }
+            };
 
             var loginForm = this.loginForm = $('<div>');
             loginForm.append('<h1>Login</h1>');
@@ -231,11 +224,10 @@ define([
         },
         getMenuContent: function () {
 
-            var that = this;
             var dom = this.menuContent = $('<div>');
 
-            var logout = $('<div>').append($('<p>').css('display', 'inline-block').css('width', '50%').append('Click on an element to select it. Double-click to load.')).append($('<p>').append('Logged in as ' + this.username + ' ').css('width', '50%').css('text-align', 'right').css('display', 'inline-block').append($('<a>Logout</a>').on('click', function () {
-                that.logout();
+            var logout = $('<div>').append($('<p>').css('display', 'inline-block').css('width', '50%').append('Click on an element to select it. Double-click to load.')).append($('<p>').append('Logged in as ' + this.username + ' ').css('width', '50%').css('text-align', 'right').css('display', 'inline-block').append($('<a>Logout</a>').on('click', () => {
+                this.logout();
             }).css({
                 color: 'blue',
                 'text-decoration': 'underline',
@@ -258,11 +250,11 @@ define([
 
             dataCol.append('<p id="' + this.cssId('datadiv') + '">&nbsp;</p>');
             dataCol.append($('<p>').append('<input type="text" id="' + this.cssId('data') + '"/>')
-                    .append(new Button('Save', function () {
-                        that.save('Data', that.getFormContent('data'));
+                    .append(new Button('Save', () => {
+                        this.save('Data', this.getFormContent('data'));
                     }, {color: 'red'}).render())
-                    .append(new Button('Mkdir', function () {
-                        that.mkdir('Data', that.getFormContent('data'));
+                    .append(new Button('Mkdir', () => {
+                        this.mkdir('Data', this.getFormContent('data'));
                     }, {color: 'blue'}).render())
             );
             this.lastDataFolder = {name: this.username + ':data', node: null};
@@ -275,11 +267,11 @@ define([
 
             viewCol.append('<p id="' + this.cssId('viewdiv') + '">&nbsp;</p>');
             viewCol.append($('<p>').append('<input type="text" id="' + this.cssId('view') + '"/>')
-                    .append(new Button('Save', function () {
-                        that.save('View', that.getFormContent('view'));
+                    .append(new Button('Save', () => {
+                        this.save('View', this.getFormContent('view'));
                     }, {color: 'red'}).render())
-                    .append(new Button('Mkdir', function () {
-                        that.mkdir('View', that.getFormContent('view'));
+                    .append(new Button('Mkdir', () => {
+                        this.mkdir('View', this.getFormContent('view'));
                     }, {color: 'blue'}).render())
             );
             this.lastViewFolder = {name: this.username + ':view', node: null};
@@ -347,8 +339,7 @@ define([
         loadTree: function () {
             var proxyLazyLoad = $.proxy(this, 'lazyLoad'),
                 proxyClickData = $.proxy(this, 'clickNode', 'Data'),
-                proxyClickView = $.proxy(this, 'clickNode', 'View'),
-                that = this;
+                proxyClickView = $.proxy(this, 'clickNode', 'View');
 
             var menuOptions = {
                 delegate: 'span.fancytree-title',
@@ -360,9 +351,9 @@ define([
                     if (node.folder) return false;
                     node.setActive();
                 },
-                select: function (event, ui) {
+                select: (event, ui) => {
                     var node = $.ui.fancytree.getNode(ui.target);
-                    that.contextClick(node, ui.cmd);
+                    this.contextClick(node, ui.cmd);
                 },
                 createMenu: function (event) {
                     $(event.target).css('z-index', 1000);
@@ -372,9 +363,9 @@ define([
             this.database.allDocs({
                 startkey: this.username + ':',
                 endkey: this.username + ':~',
-                success: function (data) {
+                success: data => {
                     var trees = createTrees(data.rows);
-                    var datatree = $('#' + that.cssId('datatree'));
+                    var datatree = $('#' + this.cssId('datatree'));
                     datatree.fancytree({
                         toggleEffect: false,
                         source: trees.data,
@@ -386,7 +377,7 @@ define([
                     datatree.data('ui-fancytree').getNodeByKey('root').toggleExpanded();
                     datatree.contextmenu(menuOptions);
 
-                    var viewtree = $('#' + that.cssId('viewtree'));
+                    var viewtree = $('#' + this.cssId('viewtree'));
                     viewtree.fancytree({
                         toggleEffect: false,
                         source: trees.view,

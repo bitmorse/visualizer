@@ -6,8 +6,6 @@ define(['require', 'jquery', 'src/util/versioning'], function (require, $, Versi
     return {
 
         init: function (headerConfig) {
-            var that = this;
-
             if (headerConfig.elements) {
                 this.loadHeaderElements(headerConfig.elements);
             }
@@ -29,9 +27,7 @@ define(['require', 'jquery', 'src/util/versioning'], function (require, $, Versi
                     Versioning.getView().configuration.set('title', $(this).text().replace(/[\r\n]/g, ''));
                 });
 
-            Versioning.getViewHandler().versionChange().progress(function (el) {
-                that.setTitle(el);
-            });
+            Versioning.getViewHandler().versionChange().progress(el => this.setTitle(el));
 
         },
 
@@ -48,15 +44,14 @@ define(['require', 'jquery', 'src/util/versioning'], function (require, $, Versi
             if (!$.isArray(all))
                 return;
 
-            var that = this,
-                i = 0,
+            var i = 0,
                 l = all.length;
 
             for (; i < l; i++) {
                 this.addHeaderElement(i, this.createElement(all[i]));
             }
 
-            Promise.all(elements).then(that.buildHeaderElements.bind(that));
+            Promise.all(elements).then(() => this.buildHeaderElements());
 
         },
 

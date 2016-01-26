@@ -22,18 +22,17 @@ define(['jquery', 'src/header/components/default', 'src/util/versioning', 'src/u
         },
 
         open: function () {
-            var that = this;
-            this.interval = window.setInterval(function () {
+            this.interval = window.setInterval(() => {
                 var view = Versioning.getView();
 
-                if (that.viewHandler.currentPath[3] !== 'head')
-                    that.viewHandler.serverCopy(view);
+                if (this.viewHandler.currentPath[3] !== 'head')
+                    this.viewHandler.serverCopy(view);
 
-                that.viewHandler._localSave(view, 'head', view._name);
-                that.$_dom.css({color: '#BCF2BB'});
+                this.viewHandler._localSave(view, 'head', view._name);
+                this.$_dom.css({color: '#BCF2BB'});
                 /*	}
                  else // We're not on the HEAD ! Therefore we cannot autosave (revert needed first)
-                 that.$_dom.css({ color: '#E0B1B1' });
+                 this.$_dom.css({ color: '#E0B1B1' });
                  */
             }, 1000);
 
