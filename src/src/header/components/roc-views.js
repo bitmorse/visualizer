@@ -313,7 +313,8 @@ define([
                         }
                     },
                     filter: {
-                        mode: 'hide'
+                        mode: 'hide',
+                        fuzzy: true
                     },
                     // events
                     activate: (event, data) => this.onActivate(event, data),
@@ -510,34 +511,11 @@ define([
         doSearch(value) {
             if (value === '') {
                 this.inSearch = false;
+                this.tree.clearFilter();
                 this.renderFlavor();
-                for (var child of this.tree.rootNode.getChildren()) {
-                    child.visit(function (node) {
-                        node.setExpanded(false);
-                    });
-                }
             } else {
                 this.inSearch = true;
-                // copied from https://github.com/mar10/fancytree/blob/a34f9edafe2c90774adc0b088145cdbc25eba71f/src/jquery.fancytree.filter.js#L30
-                // to enable filtering directories
-                var match = value.split('').reduce(function (a, b) {
-                    return a + '[^' + b + ']*' + b;
-                });
-                var re = new RegExp('.*' + match + '.*', 'i');
-                var re2 = new RegExp(value, 'gi');
-                var filter = function (node) {
-                    if (node.folder) {
-                        return false;
-                    }
-                    var res = re.test(node.title);
-                    if (res) {
-                        node.titleWithHighlight = node.title.replace(re2, function (s) {
-                            return '<mark>' + s + '</mark>';
-                        });
-                    }
-                    return res;
-                };
-                this.tree.filterNodes(filter, {autoExpand: true});
+                this.tree.filterNodes(value, {autoExpand: true, leavesOnly: true});
             }
         }
 
