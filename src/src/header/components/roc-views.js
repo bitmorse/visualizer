@@ -491,16 +491,19 @@ define([
                         let flavorNodes = this.tree.rootNode.getChildren();
                         for (const child of flavorNodes) {
                             if (child.title === flavor) {
-                                child.addNode({
+                                const theNode = child.addNode({
                                     title: result.name,
                                     folder: false,
-                                    view: view,
-                                    flavor: flavor
+                                    view,
+                                    flavor
                                 });
                                 child.sortChildren(sortFancytree);
+                                child.setExpanded(true);
+                                theNode.setActive(true);
                                 break;
                             }
                         }
+                        this.switchToFlavor(flavor);
                         UI.showNotification(`Flavor ${flavor} added`, 'success');
                     } else {
                         throw new Error('unexpected result: ' + result);
