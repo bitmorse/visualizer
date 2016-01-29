@@ -343,8 +343,9 @@ define([
                             for (var i = 0; i < flavors.length; i++) {
                                 var has = !!viewFlavors[flavors[i]];
                                 menuFlavors.push({
-                                    title: (has ? '✓ ' : '') + flavors[i],
-                                    cmd: 'toggleFlavor'
+                                    title: flavors[i],
+                                    cmd: 'toggleFlavor',
+                                    uiIcon: has ? 'ui-icon-check' : undefined
                                 });
                             }
                             this.$tree.contextmenu('replaceMenu', [
@@ -357,7 +358,7 @@ define([
                         node.setActive();
                     },
                     select: (event, ui) => {
-                        var node = $.ui.fancytree.getNode(ui.target);
+                        const node = $.ui.fancytree.getNode(ui.target);
                         switch (ui.cmd) {
                             case 'createFolder':
                                 this.createFolder(node);
@@ -368,9 +369,10 @@ define([
                             case 'renameView':
                                 this.renameView(node);
                                 break;
-                            //case 'toggleFlavor':
-                            //    this.toggleFlavor(node);
-                            //    break;
+                            case 'toggleFlavor':
+                                const flavor = ui.item.text();
+                                this.toggleFlavor(node, flavor);
+                                break;
                             default:
                                 Debug.error(`unknown action: ${ui.cmd}`);
                                 break;
@@ -442,7 +444,6 @@ define([
                 buttons: {
                     Rename: () => {
                         var name = input.val().trim();
-
                         if (name.length === 0) {
                             return UI.showNotification('Name cannot be empty', 'error');
                         }
@@ -460,6 +461,50 @@ define([
                     }
                 }
             });
+        }
+
+        toggleFlavor(node, flavor) {
+            const view = node.data.view;
+            return view.toggleFlavor(flavor, this.flavor)
+                .then(result => {
+                    if (!result) {
+                        UI.showNotification('Error while toggling flavor', 'error');
+                    } else if (result.state === 'err-one') {
+                        UI.showNotification('Cannot remove the last flavor', 'error');
+                    } else if (result.state === 'removed') {
+                        let found;
+                        this.tree.rootNode.visit(theNode => {
+                            if (theNode.data.view === view &&
+                                theNode.data.flavor === flavor) {
+                                found = theNode;
+                                return false;
+                            }
+                        });
+                        if (found) {
+                            found.remove();
+                        } else {
+                            throw new Error('Node not found');
+                        }
+                        UI.showNotification(`Flavor ${flavor} removed`, 'success');
+                    } else if (result.state === 'added') {
+                        let flavorNodes = this.tree.rootNode.getChildren();
+                        for (const child of flavorNodes) {
+                            if (child.title === flavor) {
+                                child.addNode({
+                                    title: result.name,
+                                    folder: false,
+                                    view: view,
+                                    flavor: flavor
+                                });
+                                child.sortChildren(sortFancytree);
+                                break;
+                            }
+                        }
+                        UI.showNotification(`Flavor ${flavor} added`, 'success');
+                    } else {
+                        throw new Error('unexpected result: ' + result);
+                    }
+                });
         }
 
         doSearch(value) {
@@ -545,19 +590,22 @@ define([
             this.flavors = Array.from(flavors).sort();
 
             var fancytree = [];
-            this.buildFancytree(fancytree, tree, [], true);
+            for (var element of tree) {
+                this.buildElement(fancytree, element[0], element[1], [element[0]], true, element[0]);
+            }
+            fancytree.sort(sortFancytree); // todo sort the root differently ?
 
             return fancytree;
         }
 
-        buildFancytree(fancytree, tree, path, firstLevel) {
+        buildFolder(fancytree, tree, path, firstLevel, flavor) {
             for (var element of tree) {
-                this.buildElement(fancytree, element[0], element[1], path.concat(element[0]), firstLevel);
+                this.buildElement(fancytree, element[0], element[1], path.concat(element[0]), firstLevel, flavor);
             }
             fancytree.sort(sortFancytree);
         }
 
-        buildElement(fancytree, name, value, path, firstLevel) {
+        buildElement(fancytree, name, value, path, firstLevel, flavor) {
             if (value instanceof Map) {
                 var element = {
                     title: name,
@@ -568,13 +616,14 @@ define([
                 if (firstLevel && name === this.flavor) {
                     element.expanded = true;
                 }
-                this.buildFancytree(element.children, value, path);
+                this.buildFolder(element.children, value, path, false, flavor);
                 fancytree.push(element);
             } else {
                 fancytree.push({
                     title: name,
                     folder: false,
-                    view: value
+                    view: value,
+                    flavor: flavor
                 });
             }
         }

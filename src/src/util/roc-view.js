@@ -20,6 +20,10 @@ define(function () {
             return this.content.flavors;
         }
 
+        get flavorNumber() {
+            return Object.keys(this.content.flavors).length;
+        }
+
         get id() {
             return this.view._id;
         }
@@ -92,6 +96,27 @@ define(function () {
                 path[path.length - 1] = currentName;
                 return false;
             });
+        }
+
+        toggleFlavor(flavor, currentFlavor) {
+            if (this.flavors[flavor]) {
+                if (this.flavorNumber === 1) {
+                    return Promise.resolve({state: 'err-one'});
+                }
+                const oldValue = this.flavors[flavor];
+                delete this.flavors[flavor];
+                return this.save().then(() => ({state: 'removed'}), () => {
+                    this.flavors[flavor] = oldValue;
+                    return false;
+                });
+            } else {
+                const name = this.flavors[currentFlavor][this.flavors[currentFlavor].length - 1];
+                this.flavors[flavor] = [name];
+                return this.save().then(() => ({state: 'added', name}), () => {
+                    delete this.flavors[flavor];
+                    return false;
+                });
+            }
         }
     }
 
