@@ -926,9 +926,7 @@ define([
 
                                        try {
                                            console.log("visualizer: attempting to set view");
-                                           console.log(ev.data.eventData);
                                            var val = JSON.parse(ev.data.eventData);
-                                           console.log(val);
 
                                            var keys = Object.keys(val);
                                            for (var i = 0, ii = keys.length; i < ii; i++) {
@@ -954,9 +952,7 @@ define([
 
                                        try {
                                            console.log("visualizer: attempting to set data");
-                                           console.log(ev.data.eventData);
                                            var val = JSON.parse(ev.data.eventData);
-                                           console.log(val);
 
                                            var keys = Object.keys(val);
                                            for (var i = 0, ii = keys.length; i < ii; i++) {
