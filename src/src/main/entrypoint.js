@@ -909,6 +909,73 @@ define([
                         Versioning.switchView(viewInfo, false)
                             .then(function () {
                                 Debug.info('Successfully switched view');
+
+                                //listen to save requests
+                                window.addEventListener("message",
+                                   function(ev){
+                                     console.log("visualizer: event from parent received");
+
+                                     if(ev.data.event == "visualizer:getViewJSON"){
+                                        window.parent.postMessage(
+                                          {event: "visualizer:viewJSON", eventData: Versioning.getViewJSON()},
+                                          "*"
+                                        );
+                                     }
+
+                                     if(ev.data.event == "visualizer:setViewJSON"){
+
+                                       try {
+                                           console.log("visualizer: attempting to set view");
+                                           console.log(ev.data.eventData);
+                                           var val = JSON.parse(ev.data.eventData);
+                                           console.log(val);
+
+                                           var keys = Object.keys(val);
+                                           for (var i = 0, ii = keys.length; i < ii; i++) {
+                                               if (keys[i].charAt(0) === '_')
+                                                   delete val[keys[i]];
+                                           }
+                                           Versioning.setViewJSON(val);
+                                       } catch (err) {
+                                           console.log("visualizer: couldn't set view");
+                                           console.log(err);
+                                       }
+
+                                     }
+
+                                     if(ev.data.event == "visualizer:getDataJSON"){
+                                        window.parent.postMessage(
+                                          {event: "visualizer:dataJSON", eventData: Versioning.getDataJSON()},
+                                          "*"
+                                        );
+                                     }
+
+                                     if(ev.data.event == "visualizer:setDataJSON"){
+
+                                       try {
+                                           console.log("visualizer: attempting to set data");
+                                           console.log(ev.data.eventData);
+                                           var val = JSON.parse(ev.data.eventData);
+                                           console.log(val);
+
+                                           var keys = Object.keys(val);
+                                           for (var i = 0, ii = keys.length; i < ii; i++) {
+                                               if (keys[i].charAt(0) === '_')
+                                                   delete val[keys[i]];
+                                           }
+                                           Versioning.setDataJSON(val);
+                                       } catch (err) {
+                                           console.log("visualizer: couldn't set data");
+                                           console.log(err);
+                                       }
+
+                                     }
+
+
+
+                                   },
+                                false);
+
                             });
                     });
                 });
