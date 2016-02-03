@@ -1,40 +1,48 @@
 'use strict';
 
-define(['jquery', 'modules/default/defaultcontroller', 'smart-array-filter'], function ($, Default, filter) {
+define(['socketio', 'src/util/ui', 'jquery', 'modules/default/defaultcontroller'], function (io, ui, $, Default, filter) {
+
+    var device;
 
     function Controller() {
+
+      console.log("robodash.io: events: init");
+      console.log("check if events available");
+      device = io('http://127.0.0.1:3000/api/robots/octanis1_rover/devices/rover_joystick');
+
+      device.on('connect', function (socket) {
+        ui.showNotification("Connected to rover_joystick", "success");
+      });
+
     }
 
     $.extend(true, Controller.prototype, Default);
 
     Controller.prototype.moduleInformation = {
-        name: 'Smart array filter',
-        description: 'Use simple text queries to search in an array of complex objects.',
-        author: 'Michaël Zasso',
-        date: '06.11.2015',
+        name: 'Events',
+        description: 'Event Handler for Robodash Events',
+        author: 'Sam Sulaimanov',
+        date: '03.02.2016',
         license: 'MIT',
-        cssClass: 'smart_array_filter'
+        cssClass: ''
     };
 
     Controller.prototype.references = {
-        input: {
-            label: 'Input array',
-            type: 'array'
-        },
+        input: null,
         output: {
-            label: 'Output array',
-            type: 'array'
+            label: 'Event Data',
+            type: 'text'
         }
     };
 
     Controller.prototype.events = {
-        onQuery: {
-            label: 'Query is changed',
+        newEvent: {
+            label: 'A new event has arrived',
             refVariable: ['output']
         }
     };
 
-    Controller.prototype.variablesIn = ['input'];
+    Controller.prototype.variablesIn = [];
 
     Controller.prototype.configurationStructure = function () {
         return {
@@ -44,20 +52,10 @@ define(['jquery', 'modules/default/defaultcontroller', 'smart-array-filter'], fu
                         type: 'list'
                     },
                     fields: {
-                        debounce: {
-                            type: 'float',
-                            title: 'Search debouncing (ms)',
-                            default: 100
-                        },
-                        initialValue: {
+                        event_name: {
                             type: 'text',
-                            title: 'Initial value',
+                            title: 'Event to capture',
                             default: ''
-                        },
-                        fontSize: {
-                            type: 'float',
-                            title: 'Font size',
-                            default: 20
                         }
                     }
                 }
@@ -66,16 +64,12 @@ define(['jquery', 'modules/default/defaultcontroller', 'smart-array-filter'], fu
     };
 
     Controller.prototype.configAliases = {
-        debounce: ['groups', 'group', 0, 'debounce', 0],
-        initialValue: ['groups', 'group', 0, 'initialValue', 0],
-        fontSize: ['groups', 'group', 0, 'fontSize', 0]
+        debounce: ['groups', 'group', 0, 'event_name', 0]
     };
 
-    Controller.prototype.onQuery = function (query) {
-        var array = JSON.parse(this.module.view._data);
-        if (!array) return;
-        var result = filter(array, {keywords: query});
-        this.createDataFromEvent('onQuery', 'output', result);
+    Controller.prototype.newEvent = function (data) {
+        console.log("event: "+data);
+        this.createDataFromEvent('newEvent', 'output', data);
     };
 
     return Controller;

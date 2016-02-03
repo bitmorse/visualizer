@@ -15,6 +15,7 @@
 require.config({
     waitSeconds: 0,
     paths: {
+        socketio: 'components/socketio/socketio',
         numeral: 'components/numeral/min/numeral.min',
         moment: 'components/moment/min/moment.min',
         'moment-duration-format': 'components/moment-duration-format/lib/moment-duration-format',
@@ -74,6 +75,9 @@ require.config({
         //		return MathJax;
         //	}
         //},
+        'socketio': {
+          exports: 'io'
+        },
         threejs: {
             exports: 'THREE',
             init: function () {
@@ -163,9 +167,9 @@ require([
     'src/main/entrypoint',
     'uri/URI.fragmentQuery',
     'components/bluebird/js/browser/bluebird.min',
-    'components/setImmediate/setImmediate'
+    'components/setImmediate/setImmediate',
 
-], function ($, Datas, EntryPoint, URI, Promise) {
+], function ($, Datas, EntryPoint, URI, Promise, io) {
     window.Promise = Promise;
     $.browser = {msie: false}; // Property used by old libraries and not present in jQuery anymore
     $(document).ready(function () {
