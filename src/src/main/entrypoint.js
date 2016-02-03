@@ -910,6 +910,12 @@ define([
                             .then(function () {
                                 Debug.info('Successfully switched view');
 
+                                //successfully switched view event
+                                window.parent.postMessage(
+                                  {event: "visualizer:switchedView", eventData: Versioning.getViewJSON()},
+                                  "*"
+                                );
+                                
                                 //listen to save requests
                                 window.addEventListener("message",
                                    function(ev){
