@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Test iFrame</title>
+    <style media="screen">
+      #visualizer-iframe {
+        border: 0px;
+        display: block;
+        width:100vw;
+        height:100vh;
+        margin:0;
+        padding:0;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe src="index.html" id="visualizer-iframe" frameBorder="0"></iframe>
+
+    <script type="text/javascript">
+      var visualizerIframe = document.getElementById("visualizer-iframe").contentWindow
+
+      var viewJSON = '{"version":"2.38.1-0","grid":{"layers":{"Default layer":{"name":"Default layer"}},"xWidth":10,"yHeight":10},"modules":[{"url":"modules/types/array_search/smart_array_filter/","configuration":{},"layers":{"Default layer":{"position":{"left":21,"top":16},"size":{"width":43,"height":34},"zIndex":0,"display":true,"title":"","bgColor":[255,255,255,0],"wrapper":true,"created":true,"name":"Default layer"}},"id":2,"vars_in":[],"actions_in":[],"title":""}],"variables":[],"aliases":[],"pouchvariables":[],"configuration":{"title":"CHANGED TITLE 222"}}';
+
+
+
+      //send save request
+      setInterval(function(){
+        visualizerIframe.postMessage(
+          {event: "visualizer:getViewJSON"},
+          "*"
+        )
+
+
+        visualizerIframe.postMessage(
+          {event: "visualizer:setViewJSON", eventData: viewJSON},
+          "*"
+        );
+
+
+        console.log("posting");
+      }, 1000);
+
+
+
+      //listen to save response
+      window.addEventListener("message",
+        function(ev){
+          console.log("data from visualizer received");
+          console.log(ev.data);
+        },
+      false);
+
+    </script>
+
+
+  </body>
+</html>

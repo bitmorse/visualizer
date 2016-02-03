@@ -1,0 +1,14 @@
+{
+  "modules": [
+    {
+      "moduleName": "Events (Input)",
+      "url": "modules/types/robodash.io/events/"
+    },
+    {
+      "moduleName": "Commands (Output)",
+      "url": "modules/types/robodash.io/commands/"
+    }
+  ],
+  "name": "robodash.io",
+  "folders": []
+}
