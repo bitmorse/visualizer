@@ -2,21 +2,45 @@
 
 define(['socketio', 'src/util/ui', 'jquery', 'modules/default/defaultcontroller'], function (io, ui, $, Default, filter) {
 
-    var device;
 
     function Controller() {
 
       console.log("robodash.io: events: init");
       console.log("check if events available");
-      device = io('http://127.0.0.1:3000/api/robots/octanis1_rover/devices/rover_joystick');
 
-      device.on('connect', function (socket) {
-        ui.showNotification("Connected to rover_joystick", "success");
-      });
+      //retrieve all available sockets
+      this.getSockets();
 
+      //init all available sockets and listen for events
+      this.initSockets();
     }
 
     $.extend(true, Controller.prototype, Default);
+
+
+    Controller.prototype.initSockets = function(){
+      this.sockets.forEach(function(socket){
+        var that = this;
+        var socket_name = socket.name;
+        var socket_handle = null;
+
+        console.log("robodash-events: connecting to "+socket_name);
+        socket_handle = io(socket.url);
+
+        socket_handle.on('connect', function (socket) {
+          ui.showNotification("Connected to "+socket_name, "success");
+        });
+
+        socket_handle.on('message', function(payload) {
+          ui.showNotification(payload.type+": "+payload.name , "success");
+          that.newEvent(JSON.stringify(payload));
+        })
+      }, this);
+
+    }
+
+    Controller.prototype.getSockets = function(){}
+
 
     Controller.prototype.moduleInformation = {
         name: 'Events',
@@ -42,33 +66,19 @@ define(['socketio', 'src/util/ui', 'jquery', 'modules/default/defaultcontroller'
         }
     };
 
+
+    Controller.prototype.sockets = [
+      {
+        name: "rover_joystick",
+        url: "http://127.0.0.1:3000/api/robots/octanis1_rover/devices/rover_joystick"
+      }
+    ]
+
     Controller.prototype.variablesIn = [];
 
-    Controller.prototype.configurationStructure = function () {
-        return {
-            groups: {
-                group: {
-                    options: {
-                        type: 'list'
-                    },
-                    fields: {
-                        event_name: {
-                            type: 'text',
-                            title: 'Event to capture',
-                            default: ''
-                        }
-                    }
-                }
-            }
-        };
-    };
-
-    Controller.prototype.configAliases = {
-        debounce: ['groups', 'group', 0, 'event_name', 0]
-    };
+   
 
     Controller.prototype.newEvent = function (data) {
-        console.log("event: "+data);
         this.createDataFromEvent('newEvent', 'output', data);
     };
 
